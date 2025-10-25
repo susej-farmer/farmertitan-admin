@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const jsPDF = require('jspdf');
+const QRCode = require('qrcode');
 
 const QRCodeClient = require('../clients/qrCodeClient');
 const ProductionBatchClient = require('../clients/productionBatchClient');
@@ -622,7 +624,7 @@ router.get('/batches/:id/qr-codes',
   asyncHandler(async (req, res) => {
     const { page = 1, limit = 50, sort = 'print_position', order = 'asc' } = req.query;
     
-    const result = await ProductionBatchClient.getQRCodes(req.params.id, {
+    const result = await QRCodeService.getBatchQRCodes(req.params.id, {
       page: parseInt(page),
       limit: parseInt(limit),
       sort,
@@ -634,6 +636,120 @@ router.get('/batches/:id/qr-codes',
       data: result.data,
       pagination: result.pagination
     });
+  })
+);
+
+/**
+ * GET /api/qr-codes/batches/:id/pdf
+ * Generate PDF with QR codes for a specific batch
+ */
+router.get('/batches/:id/pdf',
+  validateId,
+  asyncHandler(async (req, res) => {
+    const batchId = req.params.id;
+    
+    // Get batch info
+    const batch = await ProductionBatchClient.get(batchId);
+    if (!batch) {
+      throw new AppError('Production batch not found', 404);
+    }
+    
+    // Get all QR codes for this batch (no pagination)
+    const result = await QRCodeService.getBatchQRCodes(batchId, {
+      page: 1,
+      limit: 100,
+      sort: 'print_position',
+      order: 'asc'
+    });
+    
+    const qrCodes = result.data;
+    
+    if (qrCodes.length === 0) {
+      throw new AppError('No QR codes found for this batch', 404);
+    }
+    
+    // Create PDF
+    const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait, millimeters, A4
+    const pageWidth = pdf.internal.pageSize.width;
+    const pageHeight = pdf.internal.pageSize.height;
+    
+    // Layout configuration
+    const margin = 15;
+    const qrSize = 40; // QR code size in mm
+    const spacing = 10; // Space between QR codes
+    const textHeight = 8; // Height for short_code text
+    const itemWidth = qrSize + spacing;
+    const itemHeight = qrSize + textHeight + spacing;
+    
+    // Calculate positions (3 columns)
+    const cols = 3;
+    const startX = margin;
+    const startY = margin;
+    const colWidth = (pageWidth - 2 * margin) / cols;
+    
+    // Items per page: 3 cols x 3 rows = 9
+    const itemsPerPage = 9;
+    let currentPage = 1;
+    
+    // Add title
+    pdf.setFontSize(16);
+    pdf.text(`Production Batch: ${batch.batch_code}`, pageWidth / 2, startY, { align: 'center' });
+    
+    let currentY = startY + 15; // Start below title
+    
+    for (let i = 0; i < qrCodes.length; i++) {
+      const qr = qrCodes[i];
+      const col = i % cols;
+      const row = Math.floor((i % itemsPerPage) / cols);
+      
+      // Check if we need a new page (after 9 items)
+      if (i > 0 && i % itemsPerPage === 0) {
+        pdf.addPage();
+        currentPage++;
+        currentY = startY; // Reset Y position for new page
+      }
+      
+      // Calculate position
+      const x = startX + col * colWidth + (colWidth - qrSize) / 2;
+      const y = currentY + row * itemHeight;
+      
+      // Generate QR code URL
+      const qrUrl = `https://app.farmertitan.com/qr?code=${qr.id}`;
+      
+      try {
+        // Generate QR code as data URL
+        const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+          width: 200,
+          margin: 1,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          }
+        });
+        
+        // Add QR code to PDF
+        pdf.addImage(qrDataUrl, 'PNG', x, y, qrSize, qrSize);
+        
+        // Add short_code below QR code
+        pdf.setFontSize(10);
+        pdf.text(qr.short_code || qr.id.substring(0, 8), x + qrSize / 2, y + qrSize + 5, { align: 'center' });
+        
+      } catch (error) {
+        console.error(`Error generating QR code for ${qr.id}:`, error);
+        // Add placeholder text if QR generation fails
+        pdf.setFontSize(8);
+        pdf.text('QR Error', x + qrSize / 2, y + qrSize / 2, { align: 'center' });
+        pdf.text(qr.short_code || qr.id.substring(0, 8), x + qrSize / 2, y + qrSize + 5, { align: 'center' });
+      }
+    }
+    
+    // Set response headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="batch-${batch.batch_code}-qr-codes.pdf"`);
+    
+    // Send PDF
+    const pdfBuffer = Buffer.from(pdf.output('arraybuffer'));
+    res.send(pdfBuffer);
   })
 );
 
