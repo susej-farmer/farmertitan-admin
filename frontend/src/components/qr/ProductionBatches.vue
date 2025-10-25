@@ -132,6 +132,16 @@
                     </svg>
                   </button>
                   
+                  <button
+                    @click="generateBatchPDF(batch)"
+                    class="p-1 text-green-600 hover:text-green-800"
+                    title="Download PDF with QR Codes"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                  </button>
+                  
                   <!-- Status transition buttons -->
                   <button
                     v-if="batch.status === 'ordered'"
@@ -542,8 +552,8 @@ const generateBatchPDF = async (batch) => {
     const QRCode = await import('qrcode')
     
     // Get QR codes for this batch
-    const qrResponse = await qrService.getBatchQRCodes(batch.id, { limit: 1000 })
-    const qrCodes = qrResponse?.data?.data || []
+    const qrResponse = await qrService.getBatchQRCodes(batch.id, { limit: 100 })
+    const qrCodes = qrResponse?.data || []
     
     if (qrCodes.length === 0) {
       alert('No QR codes found for this batch')
@@ -556,12 +566,12 @@ const generateBatchPDF = async (batch) => {
     const pageHeight = pdf.internal.pageSize.getHeight()
     
     // PDF settings
-    const margin = 10
-    const headerHeight = 20
-    const qrSize = 25
-    const cellWidth = 85
-    const cellHeight = 30
-    const codesPerRow = 2
+    const margin = 15
+    const headerHeight = 25
+    const qrSize = 35
+    const cellWidth = (pageWidth - margin * 2) / 3 // 3 columns
+    const cellHeight = 50
+    const codesPerRow = 3
     const rowsPerPage = Math.floor((pageHeight - headerHeight - margin * 2) / cellHeight)
     
     let currentPage = 1
@@ -603,8 +613,9 @@ const generateBatchPDF = async (batch) => {
       const y = headerHeight + 15 + (currentRow * cellHeight)
       
       try {
-        // Generate QR code image
-        const qrDataUrl = await QRCode.toDataURL(qr.id, {
+        // Generate QR code image with farmertitan URL
+        const qrUrl = `https://app.farmertitan.com/qr?code=${qr.id}`
+        const qrDataUrl = await QRCode.toDataURL(qrUrl, {
           width: 200,
           margin: 1,
           color: {
@@ -613,19 +624,20 @@ const generateBatchPDF = async (batch) => {
           }
         })
         
+        // Center QR code in cell
+        const qrX = x + (cellWidth - qrSize) / 2
+        const qrY = y + 5
+        
         // Add QR code image
-        pdf.addImage(qrDataUrl, 'PNG', x + 2, y + 2, qrSize, qrSize)
+        pdf.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize)
         
-        // Add text information
-        pdf.setFontSize(8)
+        // Add short code centered below QR
+        pdf.setFontSize(9)
         pdf.setFont('helvetica', 'bold')
-        pdf.text(`Pos: ${qr.print_position || i + 1}`, x + qrSize + 5, y + 8)
-        
-        pdf.setFontSize(7)
-        pdf.setFont('helvetica', 'normal')
-        pdf.text(`Code: ${qr.short_code || qr.id.slice(-8)}`, x + qrSize + 5, y + 13)
-        pdf.text(`Farm: ${qr.farm?.name || 'Unassigned'}`, x + qrSize + 5, y + 18)
-        pdf.text(`Status: ${qr.status || 'active'}`, x + qrSize + 5, y + 23)
+        const shortCode = qr.short_code || qr.id.slice(-8)
+        const textWidth = pdf.getTextWidth(shortCode)
+        const textX = x + (cellWidth - textWidth) / 2
+        pdf.text(shortCode, textX, qrY + qrSize + 8)
         
         // Draw border around cell
         pdf.rect(x, y, cellWidth, cellHeight)
