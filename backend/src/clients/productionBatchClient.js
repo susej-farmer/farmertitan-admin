@@ -1,102 +1,32 @@
-const { Pool } = require('pg');
 const dbConnection = require('../database/connection');
 
 class ProductionBatchClient {
   static async create(data) {
     try {
-      const { quantity, notes, qr_supplier_id } = data;
+      const { quantity, supplier_id, user_id, notes = '' } = data;
       
       const supabase = dbConnection.getClient();
       
-      const insertData = {
-        quantity,
-        notes,
-        status: 'ordered',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      if (qr_supplier_id) {
-        insertData.qr_supplier_id = qr_supplier_id;
-      }
-      
-      const { data: batch, error } = await supabase
-        .from('qr_production_batch')
-        .insert(insertData)
-        .select()
-        .single();
+      // Call the PostgreSQL function instead of direct insert
+      const { data: result, error } = await supabase.rpc('create_production_batch', {
+        p_quantity: quantity,
+        p_supplier_id: supplier_id,
+        p_user_id: user_id,
+        p_notes: notes
+      });
         
       if (error) {
         console.error('Failed to create production batch:', error);
         throw error;
       }
       
-      return batch;
+      return result;
     } catch (error) {
       console.error('Failed to create production batch', error);
       throw error;
     }
   }
 
-  static async update(id, data) {
-    try {
-      const supabase = dbConnection.getClient();
-      
-      const updateData = {
-        ...data,
-        updated_at: new Date().toISOString()
-      };
-      
-      const { data: batch, error } = await supabase
-        .from('qr_production_batch')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-        
-      if (error) {
-        console.error('Failed to update production batch:', error);
-        throw error;
-      }
-      
-      return batch;
-    } catch (error) {
-      console.error('Failed to update production batch', error);
-      throw error;
-    }
-  }
-
-  static async updateStatus(id, status, notes = '') {
-    try {
-      const supabase = dbConnection.getClient();
-      
-      const updateData = {
-        status,
-        updated_at: new Date().toISOString()
-      };
-      
-      if (notes) {
-        updateData.notes = notes;
-      }
-      
-      const { data: batch, error } = await supabase
-        .from('qr_production_batch')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-        
-      if (error) {
-        console.error('Failed to update production batch status:', error);
-        throw error;
-      }
-      
-      return batch;
-    } catch (error) {
-      console.error('Failed to update production batch status', error);
-      throw error;
-    }
-  }
 
   static async get(id) {
     try {
@@ -104,10 +34,7 @@ class ProductionBatchClient {
       
       const { data: batch, error } = await supabase
         .from('qr_production_batch')
-        .select(`
-          *,
-          qr_supplier:qr_supplier(id, name, email, phone, address)
-        `)
+        .select('*')
         .eq('id', id)
         .single();
         
@@ -139,34 +66,75 @@ class ProductionBatchClient {
         order = 'desc'
       } = options;
       
+      // Map sort types to database fields
+      const sortMapping = {
+        'supplier': { field: 'name', foreignTable: 'supplier' },
+        'created': { field: 'created_at' },
+        'status': { field: 'status' },
+        'quantity': { field: 'quantity' },
+        'defective': { field: 'defective_count' }
+      };
+      
+      // Get sort configuration
+      const sortConfig = sortMapping[sort] || { field: 'created_at' };
+      
       let query = supabase
         .from('qr_production_batch')
         .select(`
           *,
-          qr_supplier:qr_supplier(id, name, email, phone, address)
+          supplier:supplier_id(id, name)
         `, { count: 'exact' });
       
       if (search) {
-        query = query.or(`batch_code.ilike.%${search}%,notes.ilike.%${search}%`);
+        query = query.or(`batch_code.ilike.%${search}%,metadata->>notes.ilike.%${search}%`);
       }
       
       if (status) {
         query = query.eq('status', status);
       }
       
-      const ascending = order.toLowerCase() === 'asc';
-      query = query.order(sort, { ascending });
+      // For supplier sorting, we'll do it manually after getting the data
+      // due to Supabase limitations with foreign table ordering
+      const needsManualSort = sort === 'supplier';
       
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
-      query = query.range(from, to);
+      if (!needsManualSort) {
+        // Apply normal sorting for non-foreign fields
+        const ascending = order.toLowerCase() === 'asc';
+        console.log(`Using local table sorting: ${sortConfig.field}, ascending: ${ascending}`);
+        query = query.order(sortConfig.field, { ascending });
+      } else {
+        // For supplier sorting, just get all data first, then sort manually
+        console.log('Using manual sorting for supplier field');
+      }
       
-      const { data, error, count } = await query;
+      const { data: allData, error, count } = await query;
       
       if (error) {
         console.error('Failed to get production batches:', error);
         throw error;
       }
+      
+      let sortedData = allData || [];
+      
+      // Manual sorting for supplier field
+      if (needsManualSort && sortedData.length > 0) {
+        const ascending = order.toLowerCase() === 'asc';
+        console.log(`Manual sorting by supplier name, ascending: ${ascending}`);
+        
+        sortedData.sort((a, b) => {
+          const nameA = a.supplier?.name || '';
+          const nameB = b.supplier?.name || '';
+          const comparison = nameA.localeCompare(nameB);
+          return ascending ? comparison : -comparison;
+        });
+      }
+      
+      // Apply pagination after sorting
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      const paginatedData = sortedData.slice(from, from + limit);
+      
+      const data = paginatedData;
       
       const totalPages = Math.ceil((count || 0) / limit);
       

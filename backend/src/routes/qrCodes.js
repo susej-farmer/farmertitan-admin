@@ -207,7 +207,7 @@ router.get('/batches',
       date_to = null
     } = req.query;
 
-    const result = await ProductionBatchClient.getAll({
+    const result = await QRCodeService.getProductionBatches({
       page: parseInt(page),
       limit: parseInt(limit),
       sort,
@@ -247,7 +247,7 @@ router.post('/batches',
       throw new AppError('Supplier ID is required', 400, 'MISSING_SUPPLIER');
     }
 
-    const result = await ProductionBatchClient.create({
+    const result = await QRCodeService.createProductionBatch({
       quantity: parseInt(quantity),
       supplier_id,
       notes: notes || ''

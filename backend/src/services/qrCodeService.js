@@ -73,77 +73,54 @@ class QRCodeService {
   static async createProductionBatch(batchData, createdBy = null) {
     const {
       quantity,
-      supplier_name,
-      notes = '',
-      metadata = {}
+      supplier_id,
+      notes = ''
     } = batchData;
 
     try {
-      // 1. Create production batch
-      const batch = await ProductionBatchClient.create({
+      const result = await ProductionBatchClient.create({
         quantity,
-        supplier_name,
-        notes,
-        metadata: {
-          ...metadata,
-          created_by: createdBy
+        supplier_id,
+        user_id: createdBy,
+        notes
+      });
+
+      console.log('Production batch created successfully', {
+        batch_id: result.id,
+        batch_code: result.batch_code,
+        quantity,
+        supplier_id,
+        created_by: createdBy
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Failed to create production batch', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get production batches with filtering and pagination
+   */
+  static async getProductionBatches(options = {}) {
+    try {
+      const result = await ProductionBatchClient.getAll(options);
+      
+      console.log('Retrieved production batches', {
+        page: options.page || 1,
+        limit: options.limit || 10,
+        total: result.pagination?.total || 0,
+        filters: {
+          search: options.search || '',
+          status: options.status || '',
+          sort: options.sort || 'created_at'
         }
       });
 
-      // 2. If QR codes table exists, generate QR codes for the batch
-      try {
-        const qrCodes = [];
-        for (let i = 0; i < quantity; i++) {
-          const qrUuid = uuidv4();
-          const shortCode = QRCodeClient.generateShortCode();
-          
-          qrCodes.push({
-            uuid: qrUuid,
-            short_code: shortCode,
-            batch_id: batch.id,
-            status: 'available',
-            metadata: {
-              generation_type: 'batch',
-              batch_sequence: i + 1,
-              created_by: createdBy
-            },
-            created_at: new Date().toISOString()
-          });
-        }
-
-        // 3. Insert QR codes in batch
-        await QRCodeClient.createBatch(qrCodes);
-        
-        logger.info('Production batch and QR codes created successfully', {
-          batch_id: batch.id,
-          batch_code: batch.batch_code,
-          quantity,
-          supplier_name,
-          qr_codes_created: quantity,
-          created_by: createdBy
-        });
-
-      } catch (qrError) {
-        // If QR table doesn't exist, just log and continue with batch only
-        if (qrError.code === '42P01' || qrError.code === 'PGRST106') {
-          logger.info('QR codes table not available, created batch only', {
-            batch_id: batch.id,
-            batch_code: batch.batch_code,
-            quantity,
-            supplier_name,
-            created_by: createdBy
-          });
-        } else {
-          throw qrError;
-        }
-      }
-
-      return {
-        batch,
-        qr_codes_created: quantity
-      };
+      return result;
     } catch (error) {
-      console.error('Failed to create production batch', error);
+      console.error('Failed to get production batches', error);
       throw error;
     }
   }

@@ -17,29 +17,66 @@
       </button>
     </div>
 
+
     <!-- Batches Table -->
     <div class="bg-white shadow rounded-lg overflow-hidden">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Batch Code
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" 
+                  @click="sortBy('created')">
+                <div class="flex items-center space-x-1">
+                  <span>Batch Code</span>
+                  <svg v-if="sorting.field === 'created'" class="w-4 h-4" :class="{ 'transform rotate-180': sorting.order === 'desc' }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                  </svg>
+                </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Quantity
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" 
+                  @click="sortBy('quantity')">
+                <div class="flex items-center space-x-1">
+                  <span>Quantity</span>
+                  <svg v-if="sorting.field === 'quantity'" class="w-4 h-4" :class="{ 'transform rotate-180': sorting.order === 'desc' }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                  </svg>
+                </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" 
+                  @click="sortBy('defective')">
+                <div class="flex items-center space-x-1">
+                  <span>Defective</span>
+                  <svg v-if="sorting.field === 'defective'" class="w-4 h-4" :class="{ 'transform rotate-180': sorting.order === 'desc' }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                  </svg>
+                </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Supplier
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" 
+                  @click="sortBy('supplier')">
+                <div class="flex items-center space-x-1">
+                  <span>Supplier</span>
+                  <svg v-if="sorting.field === 'supplier'" class="w-4 h-4" :class="{ 'transform rotate-180': sorting.order === 'desc' }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                  </svg>
+                </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Available
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" 
+                  @click="sortBy('status')">
+                <div class="flex items-center space-x-1">
+                  <span>Status</span>
+                  <svg v-if="sorting.field === 'status'" class="w-4 h-4" :class="{ 'transform rotate-180': sorting.order === 'desc' }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                  </svg>
+                </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" 
+                  @click="sortBy('created')">
+                <div class="flex items-center space-x-1">
+                  <span>Created</span>
+                  <svg v-if="sorting.field === 'created'" class="w-4 h-4" :class="{ 'transform rotate-180': sorting.order === 'desc' }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                  </svg>
+                </div>
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
@@ -48,32 +85,36 @@
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="batch in batches" :key="batch.id" class="hover:bg-gray-50">
+              <!-- Batch Code -->
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900">{{ batch.batch_code }}</div>
               </td>
               
+              <!-- Quantity -->
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm text-gray-900">{{ batch.quantity }}</div>
-                <div v-if="batch.defective_count > 0" class="text-xs text-red-600">
-                  {{ batch.defective_count }} defective
+              </td>
+              
+              <!-- Defective -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm" :class="batch.defective_count > 0 ? 'text-red-600' : 'text-gray-500'">
+                  {{ batch.defective_count || 0 }}
                 </div>
               </td>
               
+              <!-- Supplier -->
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ batch.qr_supplier?.name || batch.supplier?.name || batch.supplier_name || '-' }}
+              </td>
+              
+              <!-- Status -->
               <td class="px-6 py-4 whitespace-nowrap">
                 <span :class="getStatusClass(batch.status)">
                   {{ formatStatus(batch.status) }}
                 </span>
               </td>
               
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ batch.qr_supplier?.name || batch.supplier?.name || batch.supplier_name || '-' }}
-              </td>
-              
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">{{ batch.available_count || 0 }}</div>
-                <div class="text-xs text-gray-500">of {{ batch.quantity }}</div>
-              </td>
-              
+              <!-- Created -->
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {{ formatDate(batch.created_at) }}
               </td>
@@ -152,6 +193,69 @@
           </tbody>
         </table>
       </div>
+      
+      <!-- Pagination -->
+      <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+        <div class="flex items-center justify-between">
+          <!-- Navigation Arrows -->
+          <div class="flex items-center space-x-2">
+            <button
+              @click="previousPage"
+              :disabled="!pagination.hasPrev"
+              class="p-2 rounded border border-gray-300 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            <button
+              @click="nextPage"
+              :disabled="!pagination.hasNext"
+              class="p-2 rounded border border-gray-300 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          
+          <!-- Page Controls -->
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+              <span class="text-sm text-gray-700">Page</span>
+              <input
+                v-model="currentPageInput"
+                @keyup.enter="goToPage"
+                @blur="goToPage"
+                type="number"
+                min="1"
+                :max="pagination.totalPages"
+                class="w-16 px-2 py-1 text-sm border border-gray-300 rounded text-center"
+              />
+              <span class="text-sm text-gray-700">of {{ pagination.totalPages }}</span>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+              <select 
+                v-model="pagination.limit" 
+                @change="loadBatches"
+                class="border border-gray-300 rounded px-3 py-1 pr-8 text-sm"
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span class="text-sm text-gray-700">rows</span>
+            </div>
+            
+            <div class="text-sm text-gray-700">
+              {{ pagination.total }} records
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Create Production Batch Modal -->
@@ -187,7 +291,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { formatDate } from '@/utils/formatters'
 import ProductionBatchModal from './ProductionBatchModal.vue'
 import ReceiveBatchModal from './ReceiveBatchModal.vue'
@@ -203,17 +307,52 @@ const showCancelBatchModal = ref(false)
 const selectedBatch = ref(null)
 const loading = ref(false)
 
+// Pagination
+const pagination = ref({
+  page: 1,
+  limit: 10,
+  total: 0,
+  totalPages: 0,
+  hasNext: false,
+  hasPrev: false
+})
+
+// Sorting
+const sorting = ref({
+  field: 'created',
+  order: 'desc'
+})
+
+// Page input
+const currentPageInput = ref(1)
+
 // Methods
 const loadBatches = async () => {
   try {
     loading.value = true
-    console.log('Loading production batches...')
-    const response = await qrService.getProductionBatches()
+    console.log('Loading production batches...', {
+      page: pagination.value.page,
+      limit: pagination.value.limit,
+      sort: sorting.value.field,
+      order: sorting.value.order
+    })
+    
+    const response = await qrService.getProductionBatches({
+      page: pagination.value.page,
+      limit: pagination.value.limit,
+      sort: sorting.value.field,
+      order: sorting.value.order
+    })
+    
     console.log('Batches response:', response)
     
     if (response && response.success && response.data) {
       batches.value = response.data || []
+      if (response.pagination) {
+        pagination.value = { ...response.pagination }
+      }
       console.log('Loaded batches:', batches.value)
+      console.log('Pagination:', pagination.value)
     } else {
       throw new Error('Invalid response format')
     }
@@ -245,9 +384,94 @@ const loadBatches = async () => {
         created_at: '2024-01-15T10:30:00Z'
       }
     ]
+    pagination.value = {
+      page: 1,
+      limit: 10,
+      total: 2,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false
+    }
   } finally {
     loading.value = false
   }
+}
+
+const sortBy = (field) => {
+  if (sorting.value.field === field) {
+    sorting.value.order = sorting.value.order === 'asc' ? 'desc' : 'asc'
+  } else {
+    sorting.value.field = field
+    sorting.value.order = 'desc'
+  }
+  pagination.value.page = 1
+  loadBatches()
+}
+
+const changePage = (page) => {
+  pagination.value.page = page
+  loadBatches()
+}
+
+const previousPage = () => {
+  if (pagination.value.hasPrev) {
+    changePage(pagination.value.page - 1)
+  }
+}
+
+const nextPage = () => {
+  if (pagination.value.hasNext) {
+    changePage(pagination.value.page + 1)
+  }
+}
+
+const goToPage = () => {
+  const pageNum = parseInt(currentPageInput.value)
+  if (pageNum >= 1 && pageNum <= pagination.value.totalPages) {
+    changePage(pageNum)
+  } else {
+    // Reset input to current page if invalid
+    currentPageInput.value = pagination.value.page
+  }
+}
+
+const getPageNumbers = () => {
+  const pages = []
+  const currentPage = pagination.value.page
+  const totalPages = pagination.value.totalPages
+  
+  if (totalPages <= 7) {
+    // Show all pages if 7 or fewer
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i)
+    }
+  } else {
+    // Show first page
+    pages.push(1)
+    
+    if (currentPage > 4) {
+      pages.push('...')
+    }
+    
+    // Show pages around current page
+    const start = Math.max(2, currentPage - 1)
+    const end = Math.min(totalPages - 1, currentPage + 1)
+    
+    for (let i = start; i <= end; i++) {
+      pages.push(i)
+    }
+    
+    if (currentPage < totalPages - 3) {
+      pages.push('...')
+    }
+    
+    // Show last page
+    if (totalPages > 1) {
+      pages.push(totalPages)
+    }
+  }
+  
+  return pages
 }
 
 const getStatusClass = (status) => {
@@ -461,6 +685,11 @@ const onBatchCreated = () => {
   showCreateModal.value = false
   loadBatches()
 }
+
+// Watch pagination page changes to sync with input
+watch(() => pagination.value.page, (newPage) => {
+  currentPageInput.value = newPage
+})
 
 // Initialize
 onMounted(() => {
