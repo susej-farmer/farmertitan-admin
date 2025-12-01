@@ -110,96 +110,10 @@
         </div>
       </div>
 
-      <!-- API Status -->
-      <div class="card">
-        <div class="card-body">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">System Status</dt>
-                <dd class="text-lg font-medium text-green-600">Connected</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Database Status -->
-      <div class="card">
-        <div class="card-body">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-                </svg>
-              </div>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Database</dt>
-                <dd class="text-lg font-medium text-blue-600">Supabase</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Quick Actions -->
-    <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
-      <!-- Recent Activity -->
-      <div class="card">
-        <div class="card-header">
-          <h3 class="text-lg font-medium text-gray-900">Recent Activity</h3>
-        </div>
-        <div class="card-body">
-          <div class="flow-root">
-            <ul class="-mb-8">
-              <li v-for="(activity, index) in recentActivity" :key="activity.id">
-                <div class="relative pb-8" :class="{ 'pb-0': index === recentActivity.length - 1 }">
-                  <span 
-                    v-if="index !== recentActivity.length - 1"
-                    class="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200" 
-                    aria-hidden="true"
-                  ></span>
-                  <div class="relative flex items-start space-x-3">
-                    <div class="relative">
-                      <div class="h-10 w-10 rounded-full bg-gray-400 flex items-center justify-center ring-8 ring-white">
-                        <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <div>
-                        <div class="text-sm">
-                          <span class="font-medium text-gray-900">{{ activity.user }}</span>
-                        </div>
-                        <p class="mt-0.5 text-sm text-gray-500">{{ activity.action }}</p>
-                      </div>
-                      <div class="mt-2 text-sm text-gray-700">
-                        <p>{{ activity.description }}</p>
-                      </div>
-                      <div class="mt-2 text-sm text-gray-500">
-                        <time :datetime="activity.timestamp">{{ formatTime(activity.timestamp) }}</time>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
+    <div class="grid grid-cols-1 gap-5 lg:grid-cols-1">
       <!-- Quick Actions -->
       <div class="card">
         <div class="card-header">
@@ -245,36 +159,6 @@ export default {
       equipmentTypes: 0
     })
     
-    const recentActivity = ref([
-      {
-        id: 1,
-        user: 'Claude Code Assistant',
-        action: 'Connected to Supabase',
-        description: 'Successfully migrated database connection from PostgreSQL to Supabase',
-        timestamp: new Date(Date.now() - 1000 * 60 * 15) // 15 minutes ago
-      },
-      {
-        id: 2,
-        user: 'Claude Code Assistant',
-        action: 'Updated Equipment Types API',
-        description: 'Equipment Types catalog now loading real data from database',
-        timestamp: new Date(Date.now() - 1000 * 60 * 30) // 30 minutes ago
-      },
-      {
-        id: 3,
-        user: 'Claude Code Assistant',
-        action: 'Fixed Equipment Makes API',
-        description: 'Equipment Makes catalog successfully migrated to Supabase',
-        timestamp: new Date(Date.now() - 1000 * 60 * 45) // 45 minutes ago
-      },
-      {
-        id: 4,
-        user: 'System',
-        action: 'Database Migration',
-        description: 'All client modules updated to use Supabase client library',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60) // 1 hour ago
-      }
-    ])
     
     const loadStats = async () => {
       try {
@@ -315,30 +199,13 @@ export default {
       }
     }
     
-    const formatTime = (timestamp) => {
-      const now = new Date()
-      const time = new Date(timestamp)
-      const diffInMinutes = Math.floor((now - time) / (1000 * 60))
-      
-      if (diffInMinutes < 60) {
-        return `${diffInMinutes} minutes ago`
-      } else if (diffInMinutes < 1440) {
-        const hours = Math.floor(diffInMinutes / 60)
-        return `${hours} hour${hours > 1 ? 's' : ''} ago`
-      } else {
-        const days = Math.floor(diffInMinutes / 1440)
-        return `${days} day${days > 1 ? 's' : ''} ago`
-      }
-    }
     
     onMounted(() => {
       loadStats()
     })
     
     return {
-      stats,
-      recentActivity,
-      formatTime
+      stats
     }
   }
 }

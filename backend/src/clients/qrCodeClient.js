@@ -468,6 +468,83 @@ class QRCodeClient {
       throw error;
     }
   }
+
+  static async getQrByProductionBatch(productionBatchId, options = {}) {
+    try {
+      const { 
+        sort = 'status', 
+        order = 'desc'
+      } = options;
+      
+      const supabase = dbConnection.getClient();
+      
+      // Build the select query with joins using Supabase
+      let query = supabase
+        .from('qr_allocation')
+        .select(`
+          qr_id,
+          allocated_at,
+          notes,
+          qr:qr_id (
+            id,
+            short_code,
+            status,
+            created_at,
+            bound_at,
+            print_position,
+            metadata,
+            farm:farm (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('production_batch_id', productionBatchId);
+      
+      // Apply sorting based on the sort parameter
+      const ascending = order.toLowerCase() === 'asc';
+      
+      switch (sort) {
+        case 'status':
+          query = query.order('status', { ascending, foreignTable: 'qr' });
+          break;
+        case 'farm':
+          query = query.order('name', { ascending, foreignTable: 'qr.farm' });
+          break;
+        case 'bound':
+          query = query.order('bound_at', { ascending, foreignTable: 'qr' });
+          break;
+        case 'position':
+          query = query.order('print_position', { ascending, foreignTable: 'qr' });
+          break;
+        case 'short_code':
+          query = query.order('short_code', { ascending, foreignTable: 'qr' });
+          break;
+        default:
+          query = query.order('status', { ascending, foreignTable: 'qr' });
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Failed to get QR codes by production batch:', error);
+        throw error;
+      }
+      
+      // Transform the data to flatten the structure
+      const transformedData = (data || []).map(allocation => ({
+        ...allocation.qr,
+        farm_name: allocation.qr?.farm?.name || null,
+        allocated_at: allocation.allocated_at,
+        allocation_notes: allocation.notes
+      })).filter(qr => qr.id); // Filter out any null QR codes
+      
+      return transformedData;
+    } catch (error) {
+      console.error('Failed to get QR codes by production batch', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = QRCodeClient;

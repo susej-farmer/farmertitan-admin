@@ -457,6 +457,29 @@ class QRCodeService {
   }
 
   /**
+   * Get QR codes for a specific production batch
+   */
+  static async getBatchQRCodes(batchId, options = {}) {
+    try {
+      const result = await ProductionBatchClient.getQRCodes(batchId, options);
+      
+      console.log('Retrieved QR codes for batch', {
+        batch_id: batchId,
+        page: options.page || 1,
+        limit: options.limit || 50,
+        total: result.pagination?.total || 0,
+        sort: options.sort || 'print_position',
+        order: options.order || 'asc'
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Failed to get batch QR codes', error, { batchId, options });
+      throw error;
+    }
+  }
+
+  /**
    * Bulk update QR code statuses
    */
   static async bulkUpdateStatus(qrIds, newStatus, updatedBy = null) {

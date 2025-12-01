@@ -2,87 +2,87 @@ import { qrApi } from './qrApi.js'
 
 /**
  * QR Service - Higher level service wrapping QR API calls
- * Provides additional business logic and data transformation
+ * Provides additional business logic and data transformation with authentication
  */
 export const qrService = {
   // Production Batches
-  async getProductionBatches(params = {}) {
-    return await qrApi.getProductionBatches(params)
+  async getProductionBatches(params = {}, router = null) {
+    return await qrApi.getProductionBatches(params, router)
   },
 
-  async createProductionBatch(data) {
-    return await qrApi.createProductionBatch(data)
+  async createProductionBatch(data, router = null) {
+    return await qrApi.createProductionBatch(data, router)
   },
 
-  async getProductionBatch(id) {
-    return await qrApi.getProductionBatch(id)
+  async getProductionBatch(id, router = null) {
+    return await qrApi.getProductionBatch(id, router)
   },
 
-  async updateBatchStatus(id, data) {
-    return await qrApi.updateBatchStatus(id, data)
+  async updateBatchStatus(id, data, router = null) {
+    return await qrApi.updateBatchStatus(id, data, router)
   },
 
-  async getBatchQRCodes(batchId, params = {}) {
-    return await qrApi.getBatchQRCodes(batchId, params)
+  async getBatchQRCodes(batchId, params = {}, router = null) {
+    return await qrApi.getBatchQRCodes(batchId, params, router)
   },
 
-  async getSuppliers() {
-    return await qrApi.getSuppliers()
+  async getSuppliers(router = null) {
+    return await qrApi.getSuppliers(router)
   },
 
   // QR Codes
-  async getQRCodes(params = {}) {
-    return await qrApi.getQRCodes(params)
+  async getQRCodes(params = {}, router = null) {
+    return await qrApi.getQRCodes(params, router)
   },
 
-  async createQRCode(data) {
-    return await qrApi.createQRCode(data)
+  async createQRCode(data, router = null) {
+    return await qrApi.createQRCode(data, router)
   },
 
-  async scanQRCode(identifier) {
-    return await qrApi.scanQRCode(identifier)
+  async scanQRCode(identifier, router = null) {
+    return await qrApi.scanQRCode(identifier, router)
   },
 
-  async bindQRToAsset(qrId, assetType, assetId, farmId = null) {
-    return await qrApi.bindQRToAsset(qrId, assetType, assetId, farmId)
+  async bindQRToAsset(qrId, assetType, assetId, farmId = null, router = null) {
+    return await qrApi.bindQRToAsset(qrId, assetType, assetId, farmId, router)
   },
 
-  async allocateQRsToFarm(qrIds, farmId) {
-    return await qrApi.allocateQRsToFarm(qrIds, farmId)
+  async allocateQRsToFarm(qrIds, farmId, router = null) {
+    return await qrApi.allocateQRsToFarm(qrIds, farmId, router)
   },
 
   // Delivery Requests
-  async getDeliveryRequests(params = {}) {
-    return await qrApi.getDeliveryRequests(params)
+  async getDeliveryRequests(params = {}, router = null) {
+    return await qrApi.getDeliveryRequests(params, router)
   },
 
-  async createDeliveryRequest(data) {
-    return await qrApi.createDeliveryRequest(data)
+  async createDeliveryRequest(data, router = null) {
+    return await qrApi.createDeliveryRequest(data, router)
   },
 
-  async approveDeliveryRequest(id) {
-    return await qrApi.approveDeliveryRequest(id)
+  async approveDeliveryRequest(id, router = null) {
+    return await qrApi.approveDeliveryRequest(id, router)
   },
 
-  async cancelDeliveryRequest(id, reason = '') {
-    return await qrApi.cancelDeliveryRequest(id, reason)
+  async cancelDeliveryRequest(id, reason = '', router = null) {
+    return await qrApi.cancelDeliveryRequest(id, reason, router)
   },
 
   // Statistics
-  async getQRStatistics() {
-    return await qrApi.getQRStatistics()
+  async getQRStatistics(router = null) {
+    return await qrApi.getQRStatistics(router)
   },
 
-  async getBatchStatistics() {
-    return await qrApi.getBatchStatistics()
+  async getBatchStatistics(router = null) {
+    return await qrApi.getBatchStatistics(router)
   },
 
-  async getDeliveryStatistics() {
-    return await qrApi.getDeliveryStatistics()
+  async getDeliveryStatistics(router = null) {
+    return await qrApi.getDeliveryStatistics(router)
   },
 
-  async getAnalytics(timeRange = '30d') {
-    return await qrApi.getAnalytics(timeRange)
+  async getAnalytics(timeRange = '30d', router = null) {
+    return await qrApi.getAnalytics(timeRange, router)
   }
 }
 

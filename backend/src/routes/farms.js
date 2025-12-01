@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 
-const FarmClient = require('../clients/farmClient');
+const FarmService = require('../services/farmService');
 
 const {
   asyncHandler,
   AppError
 } = require('../middleware/errorHandler');
 
+const { verifyToken, requireAuth } = require('../middleware/auth');
 const {
   validateFarm,
   validateFarmUpdate,
@@ -18,10 +19,12 @@ const {
 
 // Get all farms
 router.get('/',
+  verifyToken,
+  requireAuth,
   validatePagination,
   validateSearch,
   asyncHandler(async (req, res) => {
-    const result = await FarmClient.findAll(req.query);
+    const result = await FarmService.findAll(req.query);
     res.json({
       success: true,
       data: result.data,
@@ -32,9 +35,11 @@ router.get('/',
 
 // Get farm by ID
 router.get('/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
-    const farm = await FarmClient.findById(req.params.id);
+    const farm = await FarmService.findById(req.params.id);
     res.json({
       success: true,
       data: farm
@@ -44,18 +49,11 @@ router.get('/:id',
 
 // Create new farm
 router.post('/',
+  verifyToken,
+  requireAuth,
   validateFarm,
-  asyncHandler(async (req, res, next) => {
-    // Check name uniqueness
-    const isNameUnique = await FarmClient.checkNameUnique(req.body.name);
-    if (!isNameUnique) {
-      throw new AppError('Farm name already exists', 409, 'DUPLICATE_FARM_NAME');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    const farm = await FarmClient.create(req.body);
+    const farm = await FarmService.create(req.body);
     res.status(201).json({
       success: true,
       data: farm,
@@ -66,21 +64,12 @@ router.post('/',
 
 // Update farm
 router.put('/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   validateFarmUpdate,
-  asyncHandler(async (req, res, next) => {
-    // Check name uniqueness if name is being updated
-    if (req.body.name) {
-      const isNameUnique = await FarmClient.checkNameUnique(req.body.name, req.params.id);
-      if (!isNameUnique) {
-        throw new AppError('Farm name already exists', 409, 'DUPLICATE_FARM_NAME');
-      }
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    const farm = await FarmClient.update(req.params.id, req.body);
+    const farm = await FarmService.update(req.params.id, req.body);
     res.json({
       success: true,
       data: farm,
@@ -91,9 +80,11 @@ router.put('/:id',
 
 // Delete farm
 router.delete('/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
-    await FarmClient.delete(req.params.id);
+    await FarmService.delete(req.params.id);
     res.json({
       success: true,
       message: 'Farm deleted successfully'
@@ -103,9 +94,11 @@ router.delete('/:id',
 
 // Activate farm
 router.patch('/:id/activate',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
-    const farm = await FarmClient.activate(req.params.id);
+    const farm = await FarmService.activate(req.params.id);
     res.json({
       success: true,
       data: farm,
@@ -116,9 +109,11 @@ router.patch('/:id/activate',
 
 // Deactivate farm
 router.patch('/:id/deactivate',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
-    const farm = await FarmClient.deactivate(req.params.id);
+    const farm = await FarmService.deactivate(req.params.id);
     res.json({
       success: true,
       data: farm,
@@ -129,8 +124,10 @@ router.patch('/:id/deactivate',
 
 // Get farm statistics
 router.get('/stats/overview',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
-    const stats = await FarmClient.getStatistics();
+    const stats = await FarmService.getStatistics();
     res.json({
       success: true,
       data: stats

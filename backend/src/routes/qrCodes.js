@@ -5,9 +5,11 @@ const QRCode = require('qrcode');
 
 const QRCodeClient = require('../clients/qrCodeClient');
 const ProductionBatchClient = require('../clients/productionBatchClient');
-const DeliveryRequestClient = require('../clients/deliveryRequestClient');
+const QRDeliveryBatchClient = require('../clients/qrDeliveryBatchClient');
 const QRCodeService = require('../services/qrCodeService');
 const QRSupplierService = require('../services/qrSupplierService');
+const ProductionBatchService = require('../services/productionBatchService');
+const QRDeliveryBatchService = require('../services/qrDeliveryBatchService');
 
 const {
   asyncHandler,
@@ -131,6 +133,7 @@ router.post('/scan',
  * Allocate multiple QR codes to a farm
  */
 router.post('/allocate',
+  verifyToken,
   requireAuth,
   asyncHandler(async (req, res) => {
     const { qr_ids, farm_id } = req.body;
@@ -162,6 +165,7 @@ router.post('/allocate',
  * Bulk update QR code statuses
  */
 router.post('/bulk-update',
+  verifyToken,
   requireAuth,
   asyncHandler(async (req, res) => {
     const { qr_ids, status } = req.body;
@@ -311,92 +315,8 @@ router.get('/suppliers',
 
 // Delivery Request Routes
 
-/**
- * GET /api/qr-codes/delivery-requests
- * Get all delivery requests
- */
-router.get('/delivery-requests',
-  validatePagination,
-  asyncHandler(async (req, res) => {
-    const {
-      page = 1,
-      limit = 20,
-      sort = 'created_at',
-      order = 'desc',
-      search = '',
-      status = null,
-      farm_id = null,
-      requested_by = null,
-      date_from = null,
-      date_to = null
-    } = req.query;
 
-    const result = await DeliveryRequestClient.findAll({
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort,
-      order,
-      search,
-      status,
-      farm_id,
-      requested_by,
-      date_from,
-      date_to
-    });
 
-    res.json({
-      success: true,
-      data: result.data,
-      pagination: result.pagination
-    });
-  })
-);
-
-/**
- * POST /api/qr-codes/delivery-requests
- * Create delivery request
- */
-router.post('/delivery-requests',
-  requireAuth,
-  asyncHandler(async (req, res) => {
-    const { farm_id, qr_count, notes } = req.body;
-    
-    if (!farm_id) {
-      throw new AppError('Farm ID is required', 400, 'MISSING_FARM_ID');
-    }
-
-    if (!qr_count || qr_count <= 0) {
-      throw new AppError('Valid QR count is required', 400, 'INVALID_QR_COUNT');
-    }
-
-    const deliveryRequest = await QRCodeService.createDeliveryRequest({
-      farm_id,
-      qr_count: parseInt(qr_count),
-      notes
-    }, req.user?.id);
-
-    res.status(201).json({
-      success: true,
-      data: deliveryRequest,
-      message: 'Delivery request created successfully'
-    });
-  })
-);
-
-/**
- * GET /api/qr-codes/delivery-requests/stats/overview
- * Get delivery request statistics
- */
-router.get('/delivery-requests/stats/overview',
-  asyncHandler(async (req, res) => {
-    const statistics = await DeliveryRequestClient.getStatistics();
-    
-    res.json({
-      success: true,
-      data: statistics
-    });
-  })
-);
 
 // Analytics Routes
 
@@ -432,6 +352,194 @@ router.get('/analytics/distribution',
   })
 );
 
+// QR Delivery Request Management Routes - MUST come before generic /:id route
+
+/**
+ * GET /api/qr-codes/requests
+ * Get all QR delivery requests with filtering and pagination
+ */
+router.get('/requests',
+  validatePagination,
+  asyncHandler(async (req, res) => {
+    const {
+      page = 1,
+      limit = 20,
+      sort = 'created_at',
+      order = 'desc',
+      search = '',
+      status = null,
+      farm_id = null,
+      date_from = null,
+      date_to = null
+    } = req.query;
+
+    const result = await QRDeliveryBatchService.findAll({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      sort,
+      order,
+      search,
+      status,
+      farm_id,
+      date_from,
+      date_to
+    });
+
+    res.json({
+      success: true,
+      data: result.data,
+      pagination: result.pagination
+    });
+  })
+);
+
+/**
+ * POST /api/qr-codes/requests
+ * Create a new QR delivery request
+ */
+router.post('/requests',
+  verifyToken,
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    console.log('Received delivery request creation:', req.body);
+    
+    const { farm_id, requested_quantity, metadata } = req.body;
+    
+    const result = await QRDeliveryBatchService.create({
+      farm_id,
+      requested_quantity,
+      metadata: metadata || {}
+    }, { userId: req.user.id });
+
+    res.status(201).json({
+      success: true,
+      data: result.data,
+      message: result.message
+    });
+  })
+);
+
+/**
+ * GET /api/qr-codes/requests/stats/overview
+ * Get delivery request statistics
+ */
+router.get('/requests/stats/overview',
+  asyncHandler(async (req, res) => {
+    const statistics = await QRDeliveryBatchService.getStatistics();
+    
+    res.json({
+      success: true,
+      data: statistics
+    });
+  })
+);
+
+/**
+ * GET /api/qr-codes/requests/code/:deliveryCode
+ * Get delivery request details by delivery code
+ */
+router.get('/requests/code/:deliveryCode',
+  asyncHandler(async (req, res) => {
+    const { deliveryCode } = req.params;
+    
+    if (!deliveryCode || deliveryCode.trim().length === 0) {
+      throw new AppError('Delivery code is required', 400, 'MISSING_DELIVERY_CODE');
+    }
+    
+    const deliveryRequest = await QRDeliveryBatchService.findByDeliveryCode(deliveryCode);
+    
+    res.json({
+      success: true,
+      data: deliveryRequest
+    });
+  })
+);
+
+/**
+ * GET /api/qr-codes/requests/:id
+ * Get delivery request details by ID
+ */
+router.get('/requests/:id',
+  validateId,
+  asyncHandler(async (req, res) => {
+    const deliveryRequest = await QRDeliveryBatchService.findById(req.params.id);
+    
+    res.json({
+      success: true,
+      data: deliveryRequest
+    });
+  })
+);
+
+/**
+ * PUT /api/qr-codes/requests/:id
+ * Update delivery request
+ */
+router.put('/requests/:id',
+  verifyToken,
+  requireAuth,
+  validateId,
+  asyncHandler(async (req, res) => {
+    const { delivery_code, farm_id, requested_quantity, metadata } = req.body;
+    
+    const result = await QRDeliveryBatchService.update(req.params.id, {
+      delivery_code,
+      farm_id,
+      requested_quantity,
+      metadata
+    }, { userId: req.user.id });
+
+    res.json({
+      success: true,
+      data: result.data,
+      message: result.message
+    });
+  })
+);
+
+/**
+ * PUT /api/qr-codes/requests/:id/status
+ * Update delivery request status
+ */
+router.put('/requests/:id/status',
+  verifyToken,
+  requireAuth,
+  validateId,
+  asyncHandler(async (req, res) => {
+    const { status, notes = '' } = req.body;
+    
+    const result = await QRDeliveryBatchService.updateStatus(
+      req.params.id,
+      { status, notes },
+      { userId: req.user.id }
+    );
+
+    res.json({
+      success: true,
+      data: result.data,
+      message: result.message
+    });
+  })
+);
+
+/**
+ * DELETE /api/qr-codes/requests/:id
+ * Delete delivery request
+ */
+router.delete('/requests/:id',
+  verifyToken,
+  requireAuth,
+  validateId,
+  asyncHandler(async (req, res) => {
+    const result = await QRDeliveryBatchService.delete(req.params.id, { userId: req.user.id });
+
+    res.json({
+      success: result.success,
+      message: result.message
+    });
+  })
+);
+
 // Individual QR Code Routes (with ID parameter - must come after specific routes)
 
 /**
@@ -455,6 +563,7 @@ router.get('/:id',
  * Update QR code
  */
 router.put('/:id',
+  verifyToken,
   requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
@@ -481,6 +590,7 @@ router.put('/:id',
  * Delete QR code
  */
 router.delete('/:id',
+  verifyToken,
   requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
@@ -498,6 +608,7 @@ router.delete('/:id',
  * Bind QR code to asset
  */
 router.post('/:id/bind',
+  verifyToken,
   requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
@@ -527,6 +638,7 @@ router.post('/:id/bind',
  * Unbind QR code from asset
  */
 router.post('/:id/unbind',
+  verifyToken,
   requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
@@ -563,6 +675,7 @@ router.get('/batches/:id',
  * Update production batch
  */
 router.put('/batches/:id',
+  verifyToken,
   requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
@@ -589,26 +702,24 @@ router.put('/batches/:id',
  * Update production batch status
  */
 router.put('/batches/:id/status',
+  verifyToken,
   requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const { status, notes = '', defective_info = {} } = req.body;
     
-    if (!status) {
-      throw new AppError('Status is required', 400, 'MISSING_STATUS');
-    }
-
-    const result = await ProductionBatchClient.updateStatus(
-      req.params.id, 
-      status, 
-      req.user?.id, 
-      notes, 
-      defective_info
+    const statusData = { status, notes, defective_info };
+    const userContext = { userId: req.user?.id };
+    
+    const result = await ProductionBatchService.updateStatus(
+      req.params.id,
+      statusData,
+      userContext
     );
 
     res.json({
       success: true,
-      data: result,
+      data: result.data,
       message: result.message
     });
   })
@@ -619,6 +730,8 @@ router.put('/batches/:id/status',
  * Get QR codes for a specific batch
  */
 router.get('/batches/:id/qr-codes',
+  verifyToken,
+  requireAuth,
   validateId,
   validatePagination,
   asyncHandler(async (req, res) => {
@@ -755,150 +868,11 @@ router.get('/batches/:id/pdf',
 
 // Delivery Request routes with ID parameter
 
-/**
- * GET /api/qr-codes/delivery-requests/:id
- * Get delivery request details
- */
-router.get('/delivery-requests/:id',
-  validateId,
-  asyncHandler(async (req, res) => {
-    const request = await DeliveryRequestClient.findById(req.params.id);
-    
-    res.json({
-      success: true,
-      data: request
-    });
-  })
-);
 
-/**
- * PUT /api/qr-codes/delivery-requests/:id
- * Update delivery request
- */
-router.put('/delivery-requests/:id',
-  requireAuth,
-  validateId,
-  asyncHandler(async (req, res) => {
-    const { qr_count, notes, status, metadata } = req.body;
-    
-    const request = await DeliveryRequestClient.update(req.params.id, {
-      qr_count,
-      notes,
-      status,
-      metadata
-    });
 
-    res.json({
-      success: true,
-      data: request,
-      message: 'Delivery request updated successfully'
-    });
-  })
-);
 
-/**
- * POST /api/qr-codes/delivery-requests/:id/approve
- * Approve delivery request and allocate QR codes
- */
-router.post('/delivery-requests/:id/approve',
-  requireAuth,
-  validateId,
-  asyncHandler(async (req, res) => {
-    const request = await QRCodeService.processDeliveryRequest(
-      req.params.id,
-      req.user?.id
-    );
 
-    res.json({
-      success: true,
-      data: request,
-      message: 'Delivery request approved and QR codes allocated'
-    });
-  })
-);
 
-/**
- * POST /api/qr-codes/delivery-requests/:id/cancel
- * Cancel delivery request
- */
-router.post('/delivery-requests/:id/cancel',
-  requireAuth,
-  validateId,
-  asyncHandler(async (req, res) => {
-    const { reason } = req.body;
-    
-    const request = await DeliveryRequestClient.cancel(
-      req.params.id,
-      req.user?.id,
-      reason
-    );
 
-    res.json({
-      success: true,
-      data: request,
-      message: 'Delivery request cancelled successfully'
-    });
-  })
-);
-
-/**
- * POST /api/qr-codes/delivery-requests/:id/deliver
- * Mark delivery request as delivered
- */
-router.post('/delivery-requests/:id/deliver',
-  requireAuth,
-  validateId,
-  asyncHandler(async (req, res) => {
-    const { tracking_number } = req.body;
-    
-    const request = await DeliveryRequestClient.markDelivered(
-      req.params.id,
-      req.user?.id,
-      tracking_number
-    );
-
-    res.json({
-      success: true,
-      data: request,
-      message: 'Delivery request marked as delivered'
-    });
-  })
-);
-
-/**
- * GET /api/qr-codes/suppliers
- * Get all QR suppliers
- */
-router.get('/suppliers',
-  requireAuth,
-  validatePagination,
-  asyncHandler(async (req, res) => {
-    const {
-      page = 1,
-      limit = 10,
-      search = '',
-      sort = 'name',
-      order = 'asc'
-    } = req.query;
-
-    const result = await QRSupplierService.getAllSuppliers({
-      page: parseInt(page),
-      limit: parseInt(limit),
-      search,
-      sort,
-      order
-    });
-
-    if (!result.success) {
-      throw new AppError(result.error.message, 500);
-    }
-
-    res.json({
-      success: true,
-      data: result.data,
-      pagination: result.pagination
-    });
-  })
-);
 
 module.exports = router;

@@ -2,175 +2,225 @@ import api, { apiUtils } from './api.js'
 
 /**
  * QR Codes API Service
- * Handles all QR code related API calls
+ * Handles all QR code related API calls with authentication
  */
 export const qrApi = {
   // QR Code Management
-  async getQRCodes(params = {}) {
-    return apiUtils.getPaginated('/qr-codes', params)
+  async getQRCodes(params = {}, router = null) {
+    return apiUtils.qrRequest(() => apiUtils.getPaginated('/qr-codes', params), router)
   },
 
-  async createQRCode(data) {
-    const response = await api.post('/qr-codes', data)
-    return response.data
+  async createQRCode(data, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.post('/qr-codes', data)
+      return response.data
+    }, router)
   },
 
-  async getQRCode(id) {
-    const response = await api.get(`/qr-codes/${id}`)
-    return response.data
+  async getQRCode(id, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.get(`/qr-codes/${id}`)
+      return response.data
+    }, router)
   },
 
-  async updateQRCode(id, data) {
-    const response = await api.put(`/qr-codes/${id}`, data)
-    return response.data
+  async updateQRCode(id, data, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.put(`/qr-codes/${id}`, data)
+      return response.data
+    }, router)
   },
 
-  async deleteQRCode(id) {
-    const response = await api.delete(`/qr-codes/${id}`)
-    return response.data
+  async deleteQRCode(id, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.delete(`/qr-codes/${id}`)
+      return response.data
+    }, router)
   },
 
-  async scanQRCode(identifier) {
-    const response = await api.post('/qr-codes/scan', { identifier })
-    return response.data
+  async scanQRCode(identifier, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.post('/qr-codes/scan', { identifier })
+      return response.data
+    }, router)
   },
 
-  async bindQRToAsset(qrId, assetType, assetId, farmId = null) {
-    const response = await api.post(`/qr-codes/${qrId}/bind`, {
-      asset_type: assetType,
-      asset_id: assetId,
-      farm_id: farmId
-    })
-    return response.data
+  async bindQRToAsset(qrId, assetType, assetId, farmId = null, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.post(`/qr-codes/${qrId}/bind`, {
+        asset_type: assetType,
+        asset_id: assetId,
+        farm_id: farmId
+      })
+      return response.data
+    }, router)
   },
 
-  async unbindQRFromAsset(qrId) {
-    const response = await api.post(`/qr-codes/${qrId}/unbind`)
-    return response.data
+  async unbindQRFromAsset(qrId, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.post(`/qr-codes/${qrId}/unbind`)
+      return response.data
+    }, router)
   },
 
-  async allocateQRsToFarm(qrIds, farmId) {
-    const response = await api.post('/qr-codes/allocate', {
-      qr_ids: qrIds,
-      farm_id: farmId
-    })
-    return response.data
+  async allocateQRsToFarm(qrIds, farmId, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.post('/qr-codes/allocate', {
+        qr_ids: qrIds,
+        farm_id: farmId
+      })
+      return response.data
+    }, router)
   },
 
-  async bulkUpdateQRs(qrIds, status) {
-    const response = await api.post('/qr-codes/bulk-update', {
-      qr_ids: qrIds,
-      status
-    })
-    return response.data
+  async bulkUpdateQRs(qrIds, status, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.post('/qr-codes/bulk-update', {
+        qr_ids: qrIds,
+        status
+      })
+      return response.data
+    }, router)
   },
 
-  async getQRStatistics() {
-    const response = await api.get('/qr-codes/stats/overview')
-    return response.data
+  async getQRStatistics(router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.get('/qr-codes/stats/overview')
+      return response.data
+    }, router)
   },
 
   // Production Batch Management
-  async getProductionBatches(params = {}) {
-    return apiUtils.getPaginated('/qr-codes/batches', params)
+  async getProductionBatches(params = {}, router = null) {
+    return apiUtils.qrRequest(() => apiUtils.getPaginated('/qr-codes/batches', params), router)
   },
 
-  async createProductionBatch(data) {
-    const response = await api.post('/qr-codes/batches', data)
-    return response.data
+  async createProductionBatch(data, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.post('/qr-codes/batches', data)
+      return response.data
+    }, router)
   },
 
-  async getProductionBatch(id) {
-    const response = await api.get(`/qr-codes/batches/${id}`)
-    return response.data
+  async getProductionBatch(id, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.get(`/qr-codes/batches/${id}`)
+      return response.data
+    }, router)
   },
 
-  async updateProductionBatch(id, data) {
-    const response = await api.put(`/qr-codes/batches/${id}`, data)
-    return response.data
+  async updateProductionBatch(id, data, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.put(`/qr-codes/batches/${id}`, data)
+      return response.data
+    }, router)
   },
 
-  async updateBatchStatus(id, data) {
-    const response = await api.put(`/qr-codes/batches/${id}/status`, data)
-    return response.data
+  async updateBatchStatus(id, data, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.put(`/qr-codes/batches/${id}/status`, data)
+      return response.data
+    }, router)
   },
 
-  async getBatchQRCodes(batchId, params = {}) {
-    return apiUtils.getPaginated(`/qr-codes/batches/${batchId}/qr-codes`, params)
+  async getBatchQRCodes(batchId, params = {}, router = null) {
+    return apiUtils.qrRequest(() => apiUtils.getPaginated(`/qr-codes/batches/${batchId}/qr-codes`, params), router)
   },
 
-  async getBatchStatistics() {
-    const response = await api.get('/qr-codes/batches/stats/overview')
-    return response.data
+  async getBatchStatistics(router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.get('/qr-codes/batches/stats/overview')
+      return response.data
+    }, router)
   },
 
-  async getSuppliers() {
-    const response = await api.get('/qr-codes/suppliers')
-    return response.data
+  async getSuppliers(router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.get('/qr-codes/suppliers')
+      return response.data
+    }, router)
   },
 
   // Delivery Request Management
-  async getDeliveryRequests(params = {}) {
-    return apiUtils.getPaginated('/qr-codes/delivery-requests', params)
+  async getDeliveryRequests(params = {}, router = null) {
+    return apiUtils.qrRequest(() => apiUtils.getPaginated('/qr-codes/delivery-requests', params), router)
   },
 
-  async createDeliveryRequest(data) {
-    const response = await api.post('/qr-codes/delivery-requests', data)
-    return response.data
+  async createDeliveryRequest(data, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.post('/qr-codes/delivery-requests', data)
+      return response.data
+    }, router)
   },
 
-  async getDeliveryRequest(id) {
-    const response = await api.get(`/qr-codes/delivery-requests/${id}`)
-    return response.data
+  async getDeliveryRequest(id, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.get(`/qr-codes/delivery-requests/${id}`)
+      return response.data
+    }, router)
   },
 
-  async updateDeliveryRequest(id, data) {
-    const response = await api.put(`/qr-codes/delivery-requests/${id}`, data)
-    return response.data
+  async updateDeliveryRequest(id, data, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.put(`/qr-codes/delivery-requests/${id}`, data)
+      return response.data
+    }, router)
   },
 
-  async approveDeliveryRequest(id) {
-    const response = await api.post(`/qr-codes/delivery-requests/${id}/approve`)
-    return response.data
+  async approveDeliveryRequest(id, router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.post(`/qr-codes/delivery-requests/${id}/approve`)
+      return response.data
+    }, router)
   },
 
-  async cancelDeliveryRequest(id, reason = '') {
-    const response = await api.post(`/qr-codes/delivery-requests/${id}/cancel`, { reason })
-    return response.data
+  async cancelDeliveryRequest(id, reason = '', router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.post(`/qr-codes/delivery-requests/${id}/cancel`, { reason })
+      return response.data
+    }, router)
   },
 
-  async markRequestDelivered(id, trackingNumber = '') {
-    const response = await api.post(`/qr-codes/delivery-requests/${id}/deliver`, {
-      tracking_number: trackingNumber
-    })
-    return response.data
+  async markRequestDelivered(id, trackingNumber = '', router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.post(`/qr-codes/delivery-requests/${id}/deliver`, {
+        tracking_number: trackingNumber
+      })
+      return response.data
+    }, router)
   },
 
-  async getDeliveryStatistics() {
-    const response = await api.get('/qr-codes/delivery-requests/stats/overview')
-    return response.data
+  async getDeliveryStatistics(router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.get('/qr-codes/delivery-requests/stats/overview')
+      return response.data
+    }, router)
   },
 
   // Analytics
-  async getAnalytics(timeRange = '30d') {
-    const response = await api.get('/qr-codes/analytics', {
-      params: { time_range: timeRange }
-    })
-    return response.data
+  async getAnalytics(timeRange = '30d', router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.get('/qr-codes/analytics', {
+        params: { time_range: timeRange }
+      })
+      return response.data
+    }, router)
   },
 
-  async getAssetDistribution() {
-    const response = await api.get('/qr-codes/analytics/distribution')
-    return response.data
+  async getAssetDistribution(router = null) {
+    return apiUtils.qrRequest(async () => {
+      const response = await api.get('/qr-codes/analytics/distribution')
+      return response.data
+    }, router)
   },
 
   // Farm-specific endpoints
-  async getFarmQRCodes(farmId, params = {}) {
-    return apiUtils.getPaginated(`/qr-codes/farms/${farmId}/qr-codes`, params)
+  async getFarmQRCodes(farmId, params = {}, router = null) {
+    return apiUtils.qrRequest(() => apiUtils.getPaginated(`/qr-codes/farms/${farmId}/qr-codes`, params), router)
   },
 
-  async getFarmDeliveryRequests(farmId, params = {}) {
-    return apiUtils.getPaginated(`/qr-codes/farms/${farmId}/delivery-requests`, params)
+  async getFarmDeliveryRequests(farmId, params = {}, router = null) {
+    return apiUtils.qrRequest(() => apiUtils.getPaginated(`/qr-codes/farms/${farmId}/delivery-requests`, params), router)
   }
 }
 

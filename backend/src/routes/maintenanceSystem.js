@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const MaintenanceTemplateService = require('../services/maintenanceTemplateService');
+const EquipmentManagementService = require('../services/equipmentManagementService');
 
 const {
   asyncHandler,
@@ -63,12 +64,12 @@ router.get('/equipment-type-tasks/:equipmentTypeId',
   })
 );
 
-// Get all equipment with maintenance status (legacy)
+// Get all equipment with maintenance status
 router.get('/equipment',
   validatePagination,
   validateSearch,
   asyncHandler(async (req, res) => {
-    const result = await MaintenanceTemplateService.getEquipmentWithMaintenanceStatus(req.query);
+    const result = await EquipmentManagementService.getEquipmentWithMaintenanceStatus(req.query);
     res.json({
       success: true,
       data: result.data,
@@ -77,14 +78,75 @@ router.get('/equipment',
   })
 );
 
+// Get specific equipment by ID
+router.get('/equipment/:id',
+  validateId,
+  asyncHandler(async (req, res) => {
+    const equipment = await EquipmentManagementService.findById(req.params.id);
+    res.json({
+      success: true,
+      data: equipment
+    });
+  })
+);
+
 // Get maintenance templates for specific equipment
 router.get('/equipment/:id/maintenance',
   validateId,
   asyncHandler(async (req, res) => {
-    const templates = await MaintenanceTemplateService.getMaintenanceTemplatesForEquipment(req.params.id);
+    const templates = await EquipmentManagementService.getMaintenanceTemplatesForEquipment(req.params.id);
     res.json({
       success: true,
       data: templates
+    });
+  })
+);
+
+// Create physical equipment
+router.post('/equipment',
+  asyncHandler(async (req, res) => {
+    const equipment = await EquipmentManagementService.create(req.body);
+    res.status(201).json({
+      success: true,
+      data: equipment,
+      message: 'Equipment created successfully'
+    });
+  })
+);
+
+// Update physical equipment
+router.put('/equipment/:id',
+  validateId,
+  asyncHandler(async (req, res) => {
+    const equipment = await EquipmentManagementService.update(req.params.id, req.body);
+    res.json({
+      success: true,
+      data: equipment,
+      message: 'Equipment updated successfully'
+    });
+  })
+);
+
+// Delete physical equipment
+router.delete('/equipment/:id',
+  validateId,
+  asyncHandler(async (req, res) => {
+    await EquipmentManagementService.delete(req.params.id);
+    res.json({
+      success: true,
+      message: 'Equipment deleted successfully'
+    });
+  })
+);
+
+// Get equipment statistics
+router.get('/equipment-stats',
+  asyncHandler(async (req, res) => {
+    const { farm_id } = req.query;
+    const stats = await EquipmentManagementService.getStatistics(farm_id);
+    res.json({
+      success: true,
+      data: stats
     });
   })
 );
@@ -128,30 +190,8 @@ router.put('/validate-equipment-update/:taskSeriesId',
 
 // Create equipment with maintenance templates
 router.post('/equipment-with-maintenance',
-  asyncHandler(async (req, res, next) => {
-    const { equipment, maintenanceTemplates } = req.body;
-    
-    // Validate required fields
-    if (!equipment || !equipment.type || !equipment.make || !equipment.model) {
-      throw new AppError('Equipment type, make, and model are required', 400, 'MISSING_EQUIPMENT_DATA');
-    }
-    
-    if (!maintenanceTemplates || !Array.isArray(maintenanceTemplates) || maintenanceTemplates.length === 0) {
-      throw new AppError('At least one maintenance template is required', 400, 'MISSING_MAINTENANCE_TEMPLATES');
-    }
-    
-    // Validate each maintenance template
-    for (const template of maintenanceTemplates) {
-      if (!template.interval || !template.schedule_type || !template.maintenance_name || 
-          !template.maintenance_category || !template.part_or_consumable) {
-        throw new AppError('All maintenance template fields are required', 400, 'INVALID_MAINTENANCE_TEMPLATE');
-      }
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    const result = await MaintenanceTemplateService.createEquipmentWithMaintenance(req.body);
+    const result = await EquipmentManagementService.createEquipmentWithMaintenance(req.body);
     res.status(201).json({
       success: true,
       data: result,

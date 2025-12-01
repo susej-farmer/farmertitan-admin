@@ -36,16 +36,6 @@
         <div v-if="activeTab === 'deliveries'" class="space-y-6">
           <DeliveryRequests />
         </div>
-
-        <!-- QR Registry Tab -->
-        <div v-if="activeTab === 'registry'" class="space-y-6">
-          <QRRegistry />
-        </div>
-
-        <!-- Analytics Tab -->
-        <div v-if="activeTab === 'analytics'" class="space-y-6">
-          <QRAnalytics />
-        </div>
       </div>
     </div>
 
@@ -70,8 +60,6 @@ import { ref, onMounted } from 'vue'
 import QRInventory from '@/components/qr/QRInventory.vue'
 import ProductionBatches from '@/components/qr/ProductionBatches.vue'
 import DeliveryRequests from '@/components/qr/DeliveryRequests.vue'
-import QRRegistry from '@/components/qr/QRRegistry.vue'
-import QRAnalytics from '@/components/qr/QRAnalytics.vue'
 
 // State
 const activeTab = ref('inventory')
@@ -80,9 +68,7 @@ const activeTab = ref('inventory')
 const tabs = [
   { key: 'inventory', label: 'QR Inventory' },
   { key: 'batches', label: 'Production Batches' },
-  { key: 'deliveries', label: 'Delivery Requests' },
-  { key: 'registry', label: 'QR Registry' },
-  { key: 'analytics', label: 'Analytics' }
+  { key: 'deliveries', label: 'Delivery Requests' }
 ]
 
 // Event handlers

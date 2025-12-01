@@ -78,16 +78,14 @@ const errorHandler = (err, req, res, next) => {
     details = { field: err.path, value: err.value };
   }
 
-  // In development, include stack trace
+  // Build clean response (never include stack trace for security)
   const response = {
     success: false,
     error: {
       code,
       message,
       ...(details && { details }),
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-      timestamp: new Date().toISOString(),
-      requestId: req.id || req.headers['x-request-id']
+      timestamp: new Date().toISOString()
     }
   };
 

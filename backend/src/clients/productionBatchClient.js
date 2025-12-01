@@ -176,6 +176,83 @@ class ProductionBatchClient {
     }
   }
 
+  static async updateStatusWithFunction(id, status, userId = null, notes = '', defectiveInfo = {}) {
+    try {
+      const supabase = dbConnection.getClient();
+      
+      // Call the Supabase function
+      const { data, error } = await supabase.rpc('update_batch_status', {
+        p_batch_id: id,
+        p_new_status: status,
+        p_user_id: userId,
+        p_notes: notes || '',
+        p_defective_info: defectiveInfo
+      });
+      
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(`Failed to update batch status: ${error.message}`);
+      }
+      
+      return {
+        success: true,
+        message: data?.message || 'Batch status updated successfully',
+        data: data
+      };
+    } catch (error) {
+      console.error('Failed to update production batch status via function:', error);
+      throw error;
+    }
+  }
+
+  static async updateStatus(id, status, userId = null, notes = '', defectiveInfo = {}) {
+    try {
+      const supabase = dbConnection.getClient();
+      
+      const updateData = {
+        status,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Handle defective information for 'received' status
+      if (status === 'received' && defectiveInfo.defectiveCount > 0) {
+        updateData.defective_count = defectiveInfo.defectiveCount;
+        if (defectiveInfo.defectiveItems) {
+          updateData.defective_items = defectiveInfo.defectiveItems;
+        }
+      }
+      
+      // Add notes if provided
+      if (notes) {
+        updateData.notes = notes;
+      }
+
+      const { data, error } = await supabase
+        .from('qr_production_batch')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Failed to update production batch status:', error);
+        throw error;
+      }
+      
+      console.log('Production batch status updated successfully', {
+        id,
+        status,
+        defective_count: updateData.defective_count || 0,
+        updated_by: userId
+      });
+      
+      return data;
+    } catch (error) {
+      console.error('Failed to update production batch status', error);
+      throw error;
+    }
+  }
+
   static async getQRCodes(batchId, options = {}) {
     try {
       const { 
@@ -189,24 +266,20 @@ class ProductionBatchClient {
       
       console.log(`SORTING: ${sort}, ORDER: ${order}`);
       
-      // Get ALL QR codes for this batch
+      // Get ALL QR codes for this batch directly from qr table
       const { data: allData, error, count } = await supabase
-        .from('qr_allocation')
+        .from('qr')
         .select(`
-          qr:qr_id (
-            id,
-            short_code,
-            status,
-            created_at,
-            bound_at,
-            print_position,
-            metadata,
-            farm:farm(id, name)
-          ),
-          allocated_at,
-          notes
+          id,
+          short_code,
+          status,
+          created_at,
+          bound_at,
+          print_position,
+          metadata,
+          farm:farm(id, name)
         `, { count: 'exact' })
-        .eq('production_batch_id', batchId);
+        .eq('metadata->>production_batch_id', batchId);
         
       if (error) {
         console.error('Supabase error:', error);
@@ -217,31 +290,26 @@ class ProductionBatchClient {
       
       if (allData && allData.length > 0) {
         console.log('Raw data sample:', JSON.stringify(allData[0], null, 2));
-        console.log('First QR print_position:', allData[0]?.qr?.print_position);
-        console.log('All QR print_positions:', allData.slice(0, 5).map(a => a?.qr?.print_position));
-        console.log('Farm names:', allData.slice(0, 5).map(a => a?.qr?.farm?.name));
+        console.log('First QR print_position:', allData[0]?.print_position);
+        console.log('All QR print_positions:', allData.slice(0, 5).map(qr => qr?.print_position));
+        console.log('Farm names:', allData.slice(0, 5).map(qr => qr?.farm?.name));
+        console.log('QR statuses:', allData.slice(0, 5).map(qr => qr?.status));
       }
       
-      // Transform data
-      const qrData = (allData || []).map(allocation => {
-        if (!allocation.qr) {
-          console.log('ERROR: allocation.qr is null!', allocation);
+      // Transform data - no need to transform since we're querying qr table directly
+      const qrData = (allData || []).map(qr => {
+        if (!qr) {
+          console.log('ERROR: qr is null!', qr);
           return null;
         }
         
-        console.log(`Transforming QR ID ${allocation.qr.id}, print_position: ${allocation.qr.print_position}, farm: ${allocation.qr.farm?.name}`);
+        console.log(`QR ID ${qr.id}, print_position: ${qr.print_position}, status: ${qr.status}, farm: ${qr.farm?.name}`);
         
-        const transformed = {
-          ...allocation.qr,
-          allocated_at: allocation.allocated_at,
-          allocation_notes: allocation.notes
-        };
-        
-        if (!transformed.print_position) {
-          console.log(`ERROR: Missing print_position for QR ${allocation.qr.id}:`, JSON.stringify(allocation.qr, null, 2));
+        if (!qr.print_position) {
+          console.log(`ERROR: Missing print_position for QR ${qr.id}:`, JSON.stringify(qr, null, 2));
         }
         
-        return transformed;
+        return qr;
       }).filter(Boolean);
       
       // Manual sort

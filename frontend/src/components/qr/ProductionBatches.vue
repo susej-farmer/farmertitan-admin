@@ -142,61 +142,18 @@
                     </svg>
                   </button>
                   
-                  <!-- Status transition buttons -->
+                  <!-- Change Status button -->
                   <button
-                    v-if="batch.status === 'ordered'"
-                    @click="updateStatus(batch, 'printing')"
+                    v-if="!['received', 'cancelled', 'completed', 'partial'].includes(batch.status)"
+                    @click="openStatusModal(batch)"
                     class="p-1 text-blue-600 hover:text-blue-800"
-                    title="Mark as Printing"
+                    title="Change Status"
                   >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
                   </button>
                   
-                  <button
-                    v-if="batch.status === 'printing'"
-                    @click="showReceiveModal(batch)"
-                    class="p-1 text-green-600 hover:text-green-800"
-                    title="Receive Batch"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </button>
-                  
-                  <button
-                    v-if="['received', 'partial'].includes(batch.status)"
-                    @click="updateStatus(batch, 'completed')"
-                    class="p-1 text-purple-600 hover:text-purple-800"
-                    title="Mark as Completed"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4" />
-                    </svg>
-                  </button>
-                  
-                  <button
-                    v-if="['received', 'partial', 'completed'].includes(batch.status)"
-                    @click="printBatch(batch)"
-                    class="p-1 text-indigo-600 hover:text-indigo-800"
-                    title="Print QR Codes"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                    </svg>
-                  </button>
-                  
-                  <button
-                    v-if="!['completed', 'cancelled'].includes(batch.status)"
-                    @click="showCancelModal(batch)"
-                    class="p-1 text-red-600 hover:text-red-800"
-                    title="Cancel Batch"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
                 </div>
               </td>
             </tr>
@@ -275,21 +232,6 @@
       @created="onBatchCreated"
     />
     
-    <!-- Receive Batch Modal -->
-    <ReceiveBatchModal
-      v-if="showReceiveBatchModal"
-      :batch="selectedBatch"
-      @close="showReceiveBatchModal = false"
-      @received="onBatchReceived"
-    />
-    
-    <!-- Cancel Batch Modal -->
-    <CancelBatchModal
-      v-if="showCancelBatchModal"
-      :batch="selectedBatch"
-      @close="showCancelBatchModal = false"
-      @cancelled="onBatchCancelled"
-    />
     
     <!-- Batch Details Modal -->
     <BatchDetailsModal
@@ -297,25 +239,263 @@
       :batch="detailsBatch"
       @close="showBatchDetails = false"
     />
+
+    <!-- Change Status Modal -->
+    <div v-if="showStatusModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <!-- Modal Header -->
+        <div class="mt-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-medium text-gray-900">
+              Change Status
+            </h3>
+            <button @click="showStatusModal = false" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div class="mt-4">
+            <p class="text-sm text-gray-500">
+              Batch: {{ selectedBatch?.batch_code }}
+            </p>
+            <p class="text-sm text-gray-500">
+              Current Status: <span :class="getStatusClass(selectedBatch?.status)">{{ formatStatus(selectedBatch?.status) }}</span>
+            </p>
+          </div>
+
+          <!-- Error Alert -->
+          <div v-if="statusModalData.error" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">
+                  {{ statusModalData.error.title || 'Error' }}
+                </h3>
+                <div class="mt-2 text-sm text-red-700">
+                  <p>{{ statusModalData.error.message }}</p>
+                </div>
+                <div v-if="statusModalData.error.suggestion" class="mt-2 text-sm text-red-600">
+                  <p class="font-medium">Suggestion:</p>
+                  <p>{{ statusModalData.error.suggestion }}</p>
+                </div>
+              </div>
+              <div class="ml-auto pl-3">
+                <div class="-mx-1.5 -my-1.5">
+                  <button 
+                    @click="statusModalData.error = null"
+                    class="inline-flex bg-red-50 rounded-md p-1.5 text-red-500 hover:bg-red-100"
+                  >
+                    <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Status Selection -->
+          <div class="mt-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              New Status
+            </label>
+            <div class="space-y-2">
+              <div 
+                v-for="status in getAvailableStatuses(selectedBatch?.status)" 
+                :key="status.value"
+                class="flex items-center"
+              >
+                <input
+                  :id="status.value"
+                  v-model="statusModalData.selectedStatus"
+                  :value="status.value"
+                  type="radio"
+                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                />
+                <label 
+                  :for="status.value" 
+                  class="ml-3 block text-sm font-medium"
+                  :class="`text-${status.color}-700`"
+                >
+                  {{ status.label }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Defective Items Section (only for 'received' status) -->
+          <div v-if="statusModalData.selectedStatus === 'received'" class="mt-6">
+            <div class="border-t pt-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Number of Defective Items
+              </label>
+              <input
+                v-model.number="statusModalData.defectiveCount"
+                type="number"
+                min="0"
+                :max="selectedBatch?.quantity"
+                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0"
+              />
+              
+              <div v-if="statusModalData.defectiveCount > 0" class="mt-4 space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Defective Positions
+                  </label>
+                  <div class="flex">
+                    <span class="inline-flex items-center px-3 py-2 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                      Pos:
+                    </span>
+                    <input
+                      v-model="statusModalData.defectivePositions"
+                      type="text"
+                      class="flex-1 px-3 py-2 border border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="1, 5, 10"
+                    />
+                    <button
+                      @click="addDefectivePosition"
+                      class="ml-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-1">
+                    Separate multiple positions with commas (e.g., 1, 5, 10)
+                  </p>
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Defective Short Codes
+                  </label>
+                  <div class="flex">
+                    <span class="inline-flex items-center px-3 py-2 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                      Code:
+                    </span>
+                    <input
+                      v-model="statusModalData.defectiveShortCodes"
+                      type="text"
+                      class="flex-1 px-3 py-2 border border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="FT-ABC123, FT-DEF456"
+                    />
+                    <button
+                      @click="addDefectiveShortCode"
+                      class="ml-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-1">
+                    Separate multiple short codes with commas (e.g., FT-ABC123, FT-DEF456)
+                  </p>
+                </div>
+                
+                <!-- Show added items -->
+                <div v-if="statusModalData.addedPositions.length > 0 || statusModalData.addedShortCodes.length > 0" class="mt-4 p-3 bg-gray-50 rounded-md">
+                  <h4 class="text-sm font-medium text-gray-700 mb-2">Added Defective Items:</h4>
+                  <div v-if="statusModalData.addedPositions.length > 0" class="mb-2">
+                    <span class="text-xs font-medium text-gray-600">Positions:</span>
+                    <div class="flex flex-wrap gap-1 mt-1">
+                      <span
+                        v-for="(pos, index) in statusModalData.addedPositions"
+                        :key="`pos-${index}`"
+                        class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800"
+                      >
+                        {{ pos }}
+                        <button
+                          @click="removePosition(index)"
+                          class="ml-1 text-blue-600 hover:text-blue-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    </div>
+                  </div>
+                  <div v-if="statusModalData.addedShortCodes.length > 0">
+                    <span class="text-xs font-medium text-gray-600">Short Codes:</span>
+                    <div class="flex flex-wrap gap-1 mt-1">
+                      <span
+                        v-for="(code, index) in statusModalData.addedShortCodes"
+                        :key="`code-${index}`"
+                        class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800"
+                      >
+                        {{ code }}
+                        <button
+                          @click="removeShortCode(index)"
+                          class="ml-1 text-green-600 hover:text-green-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Actions -->
+          <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
+            <button
+              @click="showStatusModal = false"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              Cancel
+            </button>
+            <button
+              @click="handleStatusChange"
+              :disabled="!statusModalData.selectedStatus || statusModalData.loading"
+              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              <svg v-if="statusModalData.loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {{ statusModalData.loading ? 'Changing...' : 'Change Status' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { formatDate } from '@/utils/formatters'
 import ProductionBatchModal from './ProductionBatchModal.vue'
-import ReceiveBatchModal from './ReceiveBatchModal.vue'
-import CancelBatchModal from './CancelBatchModal.vue'
 import BatchDetailsModal from './BatchDetailsModal.vue'
 import { qrService } from '@/services/qrService'
+
+// Router
+const router = useRouter()
 
 // State
 const batches = ref([])
 const showCreateModal = ref(false)
-const showReceiveBatchModal = ref(false)
-const showCancelBatchModal = ref(false)
+const showStatusModal = ref(false)
 const selectedBatch = ref(null)
 const loading = ref(false)
+
+// Status change modal data
+const statusModalData = ref({
+  selectedStatus: '',
+  defectiveCount: 0,
+  defectivePositions: '',
+  defectiveShortCodes: '',
+  addedPositions: [],
+  addedShortCodes: [],
+  error: null,
+  loading: false
+})
 
 // Pagination
 const pagination = ref({
@@ -352,7 +532,7 @@ const loadBatches = async () => {
       limit: pagination.value.limit,
       sort: sorting.value.field,
       order: sorting.value.order
-    })
+    }, router)
     
     console.log('Batches response:', response)
     
@@ -520,28 +700,26 @@ const viewBatchDetails = (batch) => {
 const updateStatus = async (batch, newStatus, notes = '', defectiveInfo = {}) => {
   try {
     loading.value = true
-    await qrService.updateBatchStatus(batch.id, {
+    const response = await qrService.updateBatchStatus(batch.id, {
       status: newStatus,
       notes,
       defective_info: defectiveInfo
-    })
-    await loadBatches()
+    }, router)
+    
+    // Only reload batches if the response was successful
+    if (!response || response.success !== false) {
+      await loadBatches()
+    }
+    
+    return response
   } catch (error) {
     console.error('Failed to update batch status:', error)
+    throw error // Re-throw to let caller handle it
   } finally {
     loading.value = false
   }
 }
 
-const printBatch = async (batch) => {
-  try {
-    console.log('Printing batch:', batch.id)
-    // We'll implement this function to generate a PDF with QR codes
-    await generateBatchPDF(batch)
-  } catch (error) {
-    console.error('Failed to print batch:', error)
-  }
-}
 
 const generateBatchPDF = async (batch) => {
   try {
@@ -552,7 +730,7 @@ const generateBatchPDF = async (batch) => {
     const QRCode = await import('qrcode')
     
     // Get QR codes for this batch
-    const qrResponse = await qrService.getBatchQRCodes(batch.id, { limit: 100 })
+    const qrResponse = await qrService.getBatchQRCodes(batch.id, { limit: 100 }, router)
     const qrCodes = qrResponse?.data || []
     
     if (qrCodes.length === 0) {
@@ -567,10 +745,11 @@ const generateBatchPDF = async (batch) => {
     
     // PDF settings
     const margin = 15
-    const headerHeight = 25
-    const qrSize = 35
+    const headerHeight = 20
+    const qrSize = 30 // Reduced QR size to fit better
     const cellWidth = (pageWidth - margin * 2) / 3 // 3 columns
-    const cellHeight = 50
+    const cellHeight = 48 // Increased to accommodate position text
+    const positionHeight = 5 // More space for position text
     const codesPerRow = 3
     const rowsPerPage = Math.floor((pageHeight - headerHeight - margin * 2) / cellHeight)
     
@@ -580,7 +759,7 @@ const generateBatchPDF = async (batch) => {
     
     // Add header to first page
     const addHeader = (pageNum) => {
-      pdf.setFontSize(16)
+      pdf.setFontSize(14)
       pdf.setFont('helvetica', 'bold')
       pdf.text(`FarmerTitan QR Codes - Batch: ${batch.batch_code}`, margin, 15)
       
@@ -590,7 +769,7 @@ const generateBatchPDF = async (batch) => {
       pdf.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - margin - 60, 22)
       
       // Draw line under header
-      pdf.line(margin, headerHeight + 5, pageWidth - margin, headerHeight + 5)
+      pdf.line(margin, headerHeight + 3, pageWidth - margin, headerHeight + 3)
     }
     
     addHeader(currentPage)
@@ -610,8 +789,17 @@ const generateBatchPDF = async (batch) => {
       
       // Calculate position
       const x = margin + (currentCol * cellWidth)
-      const y = headerHeight + 15 + (currentRow * cellHeight)
+      const baseY = headerHeight + 5 + (currentRow * cellHeight)
       
+      // Add position text above the cell
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'bold')
+      const positionText = `Position ${qr.print_position || 'N/A'}`
+      const positionTextWidth = pdf.getTextWidth(positionText)
+      const positionTextX = x + (cellWidth - positionTextWidth) / 2
+      pdf.text(positionText, positionTextX, baseY + 3)
+      // Calculate cell position (below position text)
+      const y = baseY + positionHeight
       try {
         // Generate QR code image with farmertitan URL
         const qrUrl = `https://app.farmertitan.com/qr?code=${qr.id}`
@@ -632,23 +820,27 @@ const generateBatchPDF = async (batch) => {
         pdf.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize)
         
         // Add short code centered below QR
-        pdf.setFontSize(9)
+        pdf.setFontSize(8)
         pdf.setFont('helvetica', 'bold')
         const shortCode = qr.short_code || qr.id.slice(-8)
         const textWidth = pdf.getTextWidth(shortCode)
         const textX = x + (cellWidth - textWidth) / 2
-        pdf.text(shortCode, textX, qrY + qrSize + 8)
+        pdf.text(shortCode, textX, qrY + qrSize + 4)
         
-        // Draw border around cell
-        pdf.rect(x, y, cellWidth, cellHeight)
+        // Draw border around cell (not including position text)
+        pdf.rect(x, y, cellWidth, cellHeight - positionHeight)
         
       } catch (qrError) {
         console.warn('Failed to generate QR code for:', qr.id, qrError)
         
         // Add fallback text
-        pdf.setFontSize(10)
-        pdf.text('QR Code Error', x + 10, y + 15)
-        pdf.text(qr.id, x + 5, y + 20)
+        pdf.setFontSize(9)
+        pdf.text('QR Code Error', x + 8, y + 20)
+        pdf.setFontSize(8)
+        pdf.text(qr.id, x + 5, y + 30)
+        
+        // Draw border around cell (not including position text)
+        pdf.rect(x, y, cellWidth, cellHeight - positionHeight)
       }
       
       // Move to next position
@@ -671,27 +863,245 @@ const generateBatchPDF = async (batch) => {
   }
 }
 
-const showReceiveModal = (batch) => {
+
+const openStatusModal = (batch) => {
   selectedBatch.value = batch
-  showReceiveBatchModal.value = true
+  statusModalData.value = {
+    selectedStatus: '',
+    defectiveCount: 0,
+    defectivePositions: '',
+    defectiveShortCodes: '',
+    addedPositions: [],
+    addedShortCodes: [],
+    error: null,
+    loading: false
+  }
+  showStatusModal.value = true
 }
 
-const showCancelModal = (batch) => {
-  selectedBatch.value = batch
-  showCancelBatchModal.value = true
+// Get available status options based on current status
+const getAvailableStatuses = (currentStatus) => {
+  if (currentStatus === 'ordered') {
+    return [
+      { value: 'printing', label: 'Printing', color: 'blue' },
+      { value: 'received', label: 'Received', color: 'green' },
+      { value: 'cancelled', label: 'Cancelled', color: 'red' }
+    ]
+  } else if (currentStatus === 'printing') {
+    return [
+      { value: 'received', label: 'Received', color: 'green' },
+      { value: 'cancelled', label: 'Cancelled', color: 'red' }
+    ]
+  }
+  return []
 }
 
-const onBatchReceived = () => {
-  showReceiveBatchModal.value = false
-  selectedBatch.value = null
-  loadBatches()
+// Add defective position
+const addDefectivePosition = () => {
+  const positions = statusModalData.value.defectivePositions
+    .split(',')
+    .map(p => parseInt(p.trim()))
+    .filter(p => !isNaN(p) && p > 0)
+  
+  positions.forEach(pos => {
+    if (!statusModalData.value.addedPositions.includes(pos)) {
+      statusModalData.value.addedPositions.push(pos)
+    }
+  })
+  statusModalData.value.defectivePositions = ''
 }
 
-const onBatchCancelled = () => {
-  showCancelBatchModal.value = false
-  selectedBatch.value = null
-  loadBatches()
+// Add defective short code
+const addDefectiveShortCode = () => {
+  const codes = statusModalData.value.defectiveShortCodes
+    .split(',')
+    .map(c => c.trim())
+    .filter(c => c.length > 0)
+  
+  codes.forEach(code => {
+    if (!statusModalData.value.addedShortCodes.includes(code)) {
+      statusModalData.value.addedShortCodes.push(code)
+    }
+  })
+  statusModalData.value.defectiveShortCodes = ''
 }
+
+// Remove position
+const removePosition = (index) => {
+  statusModalData.value.addedPositions.splice(index, 1)
+}
+
+// Remove short code
+const removeShortCode = (index) => {
+  statusModalData.value.addedShortCodes.splice(index, 1)
+}
+
+// Handle status change
+const handleStatusChange = async () => {
+  try {
+    // Clear previous errors
+    statusModalData.value.error = null
+    statusModalData.value.loading = true
+    
+    const { selectedStatus, defectiveCount, addedPositions, addedShortCodes } = statusModalData.value
+    
+    if (!selectedStatus) {
+      statusModalData.value.error = {
+        title: 'Status Required',
+        message: 'Please select a status to continue.'
+      }
+      return
+    }
+
+    // Validate defective data for 'received' status
+    if (selectedStatus === 'received' && defectiveCount > 0) {
+      const totalDefectiveItems = addedPositions.length + addedShortCodes.length
+      
+      if (totalDefectiveItems === 0) {
+        statusModalData.value.error = {
+          title: 'Missing Defective Details',
+          message: 'When defective count > 0, you must specify defective QR codes.',
+          suggestion: 'Add positions and/or short codes below to specify which items are defective.'
+        }
+        return
+      }
+      
+      if (defectiveCount !== totalDefectiveItems) {
+        statusModalData.value.error = {
+          title: 'Count Mismatch',
+          message: `Defective count (${defectiveCount}) must match the total number of specified positions and short codes (${totalDefectiveItems}).`,
+          suggestion: 'Either adjust the defective count or add/remove positions and short codes to match.'
+        }
+        return
+      }
+    }
+
+    // Build defective_info according to backend format
+    const defectiveInfo = {}
+    
+    if (selectedStatus === 'received') {
+      // Always include defectiveCount for 'received' status
+      defectiveInfo.defectiveCount = defectiveCount
+      
+      if (defectiveCount > 0) {
+        if (addedPositions.length > 0) {
+          defectiveInfo.positions = addedPositions
+        }
+        if (addedShortCodes.length > 0) {
+          defectiveInfo.short_codes = addedShortCodes
+        }
+      }
+      // If defectiveCount is 0, only defectiveCount: 0 is included
+    }
+
+    const response = await updateStatus(selectedBatch.value, selectedStatus, '', defectiveInfo)
+    
+    // Check response success based on new format
+    if (response && response.success === false) {
+      // Handle error response according to new format
+      const { code, message } = response.error || {}
+      
+      switch (code) {
+        case 'INVALID_STATUS_TRANSITION':
+          statusModalData.value.error = {
+            title: 'Invalid Status Transition',
+            message: message,
+            suggestion: 'Please follow the correct status flow: Ordered → Printing → Received'
+          }
+          break
+        case 'MISSING_DEFECTIVE_DETAILS':
+          statusModalData.value.error = {
+            title: 'Missing Defective Details',
+            message: 'You must specify defective QR codes when defective count > 0.',
+            suggestion: 'Add positions and/or short codes below to specify which items are defective.'
+          }
+          break
+        case 'DEFECTIVE_COUNT_MISMATCH':
+          statusModalData.value.error = {
+            title: 'Count Mismatch',
+            message: message,
+            suggestion: 'Make sure the defective count matches the total positions and short codes specified.'
+          }
+          break
+        default:
+          statusModalData.value.error = {
+            title: 'Error',
+            message: message || 'Failed to change status'
+          }
+      }
+      return // Don't close modal on error
+    }
+    
+    // Success - close modal and reset
+    showStatusModal.value = false
+    selectedBatch.value = null
+    statusModalData.value = {
+      selectedStatus: '',
+      defectiveCount: 0,
+      defectivePositions: '',
+      defectiveShortCodes: '',
+      addedPositions: [],
+      addedShortCodes: [],
+      error: null,
+      loading: false
+    }
+  } catch (error) {
+    console.error('Error updating status:', error)
+    
+    // Handle network or unexpected errors
+    if (error.response?.data) {
+      const responseData = error.response.data
+      
+      // Check if it's the new error format
+      if (responseData.success === false && responseData.error) {
+        const { code, message } = responseData.error
+        
+        switch (code) {
+          case 'INVALID_STATUS_TRANSITION':
+            statusModalData.value.error = {
+              title: 'Invalid Status Transition',
+              message: message,
+              suggestion: 'Please follow the correct status flow: Ordered → Printing → Received'
+            }
+            break
+          case 'MISSING_DEFECTIVE_DETAILS':
+            statusModalData.value.error = {
+              title: 'Missing Defective Details',
+              message: 'You must specify defective QR codes when defective count > 0.',
+              suggestion: 'Add positions and/or short codes below to specify which items are defective.'
+            }
+            break
+          case 'DEFECTIVE_COUNT_MISMATCH':
+            statusModalData.value.error = {
+              title: 'Count Mismatch',
+              message: message,
+              suggestion: 'Make sure the defective count matches the total positions and short codes specified.'
+            }
+            break
+          default:
+            statusModalData.value.error = {
+              title: 'Error',
+              message: message || 'Failed to change status'
+            }
+        }
+      } else {
+        // Fallback for old format or unexpected structure
+        statusModalData.value.error = {
+          title: 'Error',
+          message: responseData.error?.message || 'Failed to change status'
+        }
+      }
+    } else {
+      statusModalData.value.error = {
+        title: 'Network Error',
+        message: 'Please check your connection and try again.'
+      }
+    }
+  } finally {
+    statusModalData.value.loading = false
+  }
+}
+
 
 const onBatchCreated = () => {
   showCreateModal.value = false

@@ -18,7 +18,7 @@
       </div>
 
       <!-- Batch Summary -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
         <div>
           <dt class="text-sm font-medium text-gray-500">Batch Code</dt>
           <dd class="text-sm text-gray-900 font-mono">{{ batch.batch_code }}</dd>
@@ -34,8 +34,12 @@
           <dd class="text-sm text-gray-900">{{ batch.qr_supplier?.name || batch.supplier?.name || batch.supplier_name || '-' }}</dd>
         </div>
         <div>
-          <dt class="text-sm font-medium text-gray-500">Available</dt>
-          <dd class="text-sm text-gray-900">{{ batch.available_count || 0 }} of {{ batch.quantity }}</dd>
+          <dt class="text-sm font-medium text-gray-500">Quantity</dt>
+          <dd class="text-sm text-gray-900">{{ batch.quantity }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Defective</dt>
+          <dd class="text-sm text-gray-900">{{ batch.defective_count || 0 }}</dd>
         </div>
         <div>
           <dt class="text-sm font-medium text-gray-500">Created</dt>
@@ -53,7 +57,7 @@
               @input="onSearchChange"
               type="text"
               placeholder="Search by QR code or short code..."
-              class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
+              class="w-80 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
         </div>
@@ -100,17 +104,6 @@
                     </div>
                   </th>
                   <th 
-                    @click="sortBy('status')"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                  >
-                    <div class="flex items-center space-x-1">
-                      <span>Status</span>
-                      <span class="text-gray-400">
-                        {{ getSortIcon('status') }}
-                      </span>
-                    </div>
-                  </th>
-                  <th 
                     @click="sortBy('bound_at')"
                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                   >
@@ -118,6 +111,17 @@
                       <span>Bound At</span>
                       <span class="text-gray-400">
                         {{ getSortIcon('bound_at') }}
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    @click="sortBy('status')"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                  >
+                    <div class="flex items-center space-x-1">
+                      <span>Status</span>
+                      <span class="text-gray-400">
+                        {{ getSortIcon('status') }}
                       </span>
                     </div>
                   </th>
@@ -137,13 +141,13 @@
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {{ qr.farm?.name || '-' }}
                   </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ qr.bound_at ? formatDate(qr.bound_at) : '-' }}
+                  </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <span :class="getQRStatusClass(qr.status)">
                       {{ formatStatus(qr.status) }}
                     </span>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {{ qr.bound_at ? formatDate(qr.bound_at) : '-' }}
                   </td>
                 </tr>
               </tbody>

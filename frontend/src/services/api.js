@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { authUtils } from '@/utils/auth'
 
 // Create axios instance with default config
 const api = axios.create({
@@ -15,17 +16,18 @@ api.interceptors.request.use(
     // Add request timestamp for performance monitoring
     config.metadata = { startTime: new Date() }
     
-    // Add auth token if available (future implementation)
-    const token = localStorage.getItem('auth_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    // Add auth token using utility function
+    const authHeader = authUtils.getAuthHeader()
+    if (authHeader) {
+      config.headers.Authorization = authHeader
     }
     
     // Log request in development
     if (import.meta.env.DEV) {
       console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, {
         params: config.params,
-        data: config.data
+        data: config.data,
+        hasAuth: !!authHeader
       })
     }
     
@@ -62,30 +64,29 @@ api.interceptors.response.use(
       status: error.response?.status,
       duration: `${duration}ms`,
       message: error.message,
-      data: error.response?.data
+      data: error.response?.data,
+      errorCode: error.response?.data?.error?.code
     })
     
-    // Handle specific error types
-    if (error.response) {
-      // Server responded with error status
+    // Handle authentication errors using utility
+    if (authUtils.isAuthError(error)) {
+      console.warn('[API] Authentication error detected:', authUtils.getAuthErrorMessage(error))
+      authUtils.handleAuthFailure() // This will clear tokens and redirect
+      // Enhance error with user-friendly message
+      error.userMessage = authUtils.getAuthErrorMessage(error)
+    } else if (error.response) {
+      // Handle other error types
       const { status, data } = error.response
       
       switch (status) {
-        case 401:
-          // Unauthorized - clear auth and redirect to login
-          localStorage.removeItem('auth_token')
-          localStorage.removeItem('refresh_token')
-          localStorage.removeItem('user_data')
-          // The auth store will handle the logout logic
-          window.location.href = '/login'
-          break
-          
         case 403:
           // Forbidden - show access denied message
+          error.userMessage = 'You do not have permission to perform this action.'
           break
           
         case 404:
           // Not found - show appropriate message
+          error.userMessage = 'The requested resource was not found.'
           break
           
         case 422:
@@ -93,19 +94,19 @@ api.interceptors.response.use(
           if (data.error?.details) {
             error.validationErrors = data.error.details
           }
+          error.userMessage = data.error?.message || 'Validation failed. Please check your input.'
           break
           
         case 500:
           // Server error - show generic error message
+          error.userMessage = 'Server error. Please try again later.'
           break
           
         default:
           // Other errors
+          error.userMessage = data.error?.message || getDefaultErrorMessage(status)
           break
       }
-      
-      // Enhance error with user-friendly message
-      error.userMessage = data.error?.message || getDefaultErrorMessage(status)
     } else if (error.request) {
       // Network error
       error.userMessage = 'Network error. Please check your connection and try again.'
@@ -139,6 +140,38 @@ function getDefaultErrorMessage(status) {
 
 // API utility functions
 export const apiUtils = {
+  /**
+   * Make authenticated request - validates token before making call
+   * @param {Function} requestFn - The API request function to execute
+   * @param {Object} router - Vue router instance (optional)
+   * @returns {Promise} API response or rejection
+   */
+  async authenticatedRequest(requestFn, router = null) {
+    // Validate authentication before making the request
+    if (!authUtils.requireAuth(router)) {
+      throw new Error('Authentication required')
+    }
+    
+    try {
+      return await requestFn()
+    } catch (error) {
+      // Handle auth errors specifically
+      if (authUtils.isAuthError(error) && router) {
+        authUtils.handleAuthFailure(router)
+      }
+      throw error
+    }
+  },
+
+  /**
+   * Wrapper for QR-related API calls that require authentication
+   * @param {Function} requestFn - The API request function
+   * @param {Object} router - Vue router instance (optional)
+   * @returns {Promise} API response
+   */
+  async qrRequest(requestFn, router = null) {
+    return this.authenticatedRequest(requestFn, router)
+  },
   // Build query string from params object
   buildQueryString(params) {
     const searchParams = new URLSearchParams()

@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 
-const EquipmentTypeClient = require('../clients/equipmentTypeClient');
-const EquipmentMakeClient = require('../clients/equipmentMakeClient');
-const EquipmentModelClient = require('../clients/equipmentModelClient');
-const EquipmentTrimClient = require('../clients/equipmentTrimClient');
-const EquipmentCatalogClient = require('../clients/equipmentCatalogClient');
-const PartTypeClient = require('../clients/partTypeClient');
-const ConsumableTypeClient = require('../clients/consumableTypeClient');
+const EquipmentTypeService = require('../services/equipmentTypeService');
+const EquipmentMakeService = require('../services/equipmentMakeService');
+const EquipmentModelService = require('../services/equipmentModelService');
+const EquipmentTrimService = require('../services/equipmentTrimService');
+const EquipmentService = require('../services/equipmentService');
+const PartTypeService = require('../services/partTypeService');
+const ConsumableTypeService = require('../services/consumableTypeService');
 
 const {
   asyncHandler,
@@ -35,7 +35,7 @@ const {
 router.get('/equipment-types', 
   validateEquipmentTypesQuery,
   asyncHandler(async (req, res) => {
-    const result = await EquipmentTypeClient.findAll(req.query);
+    const result = await EquipmentTypeService.findAll(req.query);
     res.json({
       success: true,
       data: result.data,
@@ -46,7 +46,7 @@ router.get('/equipment-types',
 
 router.get('/equipment-types/dropdown',
   asyncHandler(async (req, res) => {
-    const types = await EquipmentTypeClient.findForDropdown();
+    const types = await EquipmentTypeService.findForDropdown();
     res.json({
       success: true,
       data: types
@@ -57,7 +57,7 @@ router.get('/equipment-types/dropdown',
 router.get('/equipment-types/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    const type = await EquipmentTypeClient.findById(req.params.id);
+    const type = await EquipmentTypeService.findById(req.params.id);
     res.json({
       success: true,
       data: type
@@ -67,31 +67,14 @@ router.get('/equipment-types/:id',
 
 router.post('/equipment-types',
   optionalAuth,
-  asyncHandler(async (req, res, next) => {
-    const { name, description } = req.body;
-    
-    // Validate required fields
-    if (!name || !name.trim()) {
-      throw new AppError('Equipment type name is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Check name uniqueness
-    const isUnique = await EquipmentTypeClient.checkNameUnique(name);
-    if (!isUnique) {
-      throw new AppError('Equipment type name already exists', 409, 'DUPLICATE_NAME');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    // Add user information to the request body if user is authenticated
-    const equipmentTypeData = {
-      ...req.body,
-      created_by: req.user?.id || null,
-      created_in: req.user?.farm_roles?.[0]?.farm?.id || null
+    // Prepare user context
+    const userContext = {
+      userId: req.user?.id || null,
+      farmId: req.user?.farm_roles?.[0]?.farm?.id || null
     };
     
-    const type = await EquipmentTypeClient.create(equipmentTypeData);
+    const type = await EquipmentTypeService.create(req.body, userContext);
     res.status(201).json({
       success: true,
       data: type,
@@ -102,24 +85,8 @@ router.post('/equipment-types',
 
 router.put('/equipment-types/:id',
   validateId,
-  asyncHandler(async (req, res, next) => {
-    const { name, description } = req.body;
-    
-    // Validate required fields
-    if (!name || !name.trim()) {
-      throw new AppError('Equipment type name is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Check name uniqueness excluding current record
-    const isUnique = await EquipmentTypeClient.checkNameUnique(name, req.params.id);
-    if (!isUnique) {
-      throw new AppError('Equipment type name already exists', 409, 'DUPLICATE_NAME');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    const type = await EquipmentTypeClient.update(req.params.id, req.body);
+    const type = await EquipmentTypeService.update(req.params.id, req.body);
     res.json({
       success: true,
       data: type,
@@ -131,7 +98,7 @@ router.put('/equipment-types/:id',
 router.delete('/equipment-types/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    const type = await EquipmentTypeClient.delete(req.params.id);
+    const type = await EquipmentTypeService.delete(req.params.id);
     res.json({
       success: true,
       data: type,
@@ -142,7 +109,7 @@ router.delete('/equipment-types/:id',
 
 router.get('/equipment-types/statistics',
   asyncHandler(async (req, res) => {
-    const stats = await EquipmentTypeClient.getStatistics();
+    const stats = await EquipmentTypeService.getStatistics();
     res.json({
       success: true,
       data: stats
@@ -154,7 +121,7 @@ router.get('/equipment-types/statistics',
 router.get('/equipment-makes',
   validatePaginatedQuery,
   asyncHandler(async (req, res) => {
-    const result = await EquipmentMakeClient.findAll(req.query);
+    const result = await EquipmentMakeService.findAll(req.query);
     res.json({
       success: true,
       data: result.data,
@@ -165,7 +132,7 @@ router.get('/equipment-makes',
 
 router.get('/equipment-makes/dropdown',
   asyncHandler(async (req, res) => {
-    const makes = await EquipmentMakeClient.findForDropdown();
+    const makes = await EquipmentMakeService.findForDropdown();
     res.json({
       success: true,
       data: makes
@@ -175,7 +142,7 @@ router.get('/equipment-makes/dropdown',
 
 router.get('/equipment-makes/dropdown-with-models',
   asyncHandler(async (req, res) => {
-    const makes = await EquipmentMakeClient.findForDropdownWithModels();
+    const makes = await EquipmentMakeService.findForDropdownWithModels();
     res.json({
       success: true,
       data: makes
@@ -186,7 +153,7 @@ router.get('/equipment-makes/dropdown-with-models',
 router.get('/equipment-makes/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    const make = await EquipmentMakeClient.findById(req.params.id);
+    const make = await EquipmentMakeService.findById(req.params.id);
     res.json({
       success: true,
       data: make
@@ -197,7 +164,7 @@ router.get('/equipment-makes/:id',
 router.get('/equipment-makes/:id/models',
   validateId,
   asyncHandler(async (req, res) => {
-    const models = await EquipmentMakeClient.findModelsForMake(req.params.id);
+    const models = await EquipmentMakeService.findModelsForMake(req.params.id);
     res.json({
       success: true,
       data: models
@@ -207,31 +174,14 @@ router.get('/equipment-makes/:id/models',
 
 router.post('/equipment-makes',
   optionalAuth,
-  asyncHandler(async (req, res, next) => {
-    const { name, description } = req.body;
-    
-    // Validate required fields
-    if (!name || !name.trim()) {
-      throw new AppError('Equipment make name is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Check name uniqueness
-    const isUnique = await EquipmentMakeClient.checkNameUnique(name);
-    if (!isUnique) {
-      throw new AppError('Equipment make name already exists', 409, 'DUPLICATE_NAME');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    // Add user information to the request body if user is authenticated
-    const equipmentMakeData = {
-      ...req.body,
-      created_by: req.user?.id || null,
-      created_in: req.user?.farm_roles?.[0]?.farm?.id || null
+    // Prepare user context
+    const userContext = {
+      userId: req.user?.id || null,
+      farmId: req.user?.farm_roles?.[0]?.farm?.id || null
     };
     
-    const make = await EquipmentMakeClient.create(equipmentMakeData);
+    const make = await EquipmentMakeService.create(req.body, userContext);
     res.status(201).json({
       success: true,
       data: make,
@@ -242,24 +192,8 @@ router.post('/equipment-makes',
 
 router.put('/equipment-makes/:id',
   validateId,
-  asyncHandler(async (req, res, next) => {
-    const { name, description } = req.body;
-    
-    // Validate required fields
-    if (!name || !name.trim()) {
-      throw new AppError('Equipment make name is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Check name uniqueness excluding current record
-    const isUnique = await EquipmentMakeClient.checkNameUnique(name, req.params.id);
-    if (!isUnique) {
-      throw new AppError('Equipment make name already exists', 409, 'DUPLICATE_NAME');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    const make = await EquipmentMakeClient.update(req.params.id, req.body);
+    const make = await EquipmentMakeService.update(req.params.id, req.body);
     res.json({
       success: true,
       data: make,
@@ -271,7 +205,7 @@ router.put('/equipment-makes/:id',
 router.delete('/equipment-makes/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    const make = await EquipmentMakeClient.delete(req.params.id);
+    const make = await EquipmentMakeService.delete(req.params.id);
     res.json({
       success: true,
       data: make,
@@ -285,7 +219,7 @@ router.get('/equipment-models',
   validateEquipmentModelsQuery,
   asyncHandler(async (req, res) => {
     console.log('DEBUG: Equipment models route - req.query:', req.query);
-    const result = await EquipmentModelClient.findAll(req.query);
+    const result = await EquipmentModelService.findAll(req.query);
     res.json({
       success: true,
       data: result.data,
@@ -297,7 +231,7 @@ router.get('/equipment-models',
 router.get('/equipment-models/by-make/:makeId',
   validateMakeId,
   asyncHandler(async (req, res) => {
-    const models = await EquipmentModelClient.findByMake(req.params.makeId);
+    const models = await EquipmentModelService.findByMake(req.params.makeId);
     res.json({
       success: true,
       data: models
@@ -308,7 +242,7 @@ router.get('/equipment-models/by-make/:makeId',
 router.get('/equipment-models/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    const model = await EquipmentModelClient.findById(req.params.id);
+    const model = await EquipmentModelService.findById(req.params.id);
     res.json({
       success: true,
       data: model
@@ -318,40 +252,14 @@ router.get('/equipment-models/:id',
 
 router.post('/equipment-models',
   optionalAuth,
-  asyncHandler(async (req, res, next) => {
-    const { name, make } = req.body;
-    
-    // Validate required fields
-    if (!name || !name.trim()) {
-      throw new AppError('Equipment model name is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    if (!make) {
-      throw new AppError('Equipment make is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Validate that the make exists
-    const makeExists = await EquipmentMakeClient.findById(make);
-    if (!makeExists) {
-      throw new AppError('Referenced equipment make not found', 400, 'INVALID_MAKE_REFERENCE');
-    }
-    
-    // Check name uniqueness for this make
-    const isUnique = await EquipmentModelClient.checkNameUniqueForMake(name, make);
-    if (!isUnique) {
-      throw new AppError('Equipment model name already exists for this make', 409, 'DUPLICATE_NAME');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    // Add user information to the request body if user is authenticated
-    const equipmentModelData = {
-      ...req.body,
-      created_by: req.user?.id || null,
-      created_in: req.user?.farm_roles?.[0]?.farm?.id || null
+    // Prepare user context
+    const userContext = {
+      userId: req.user?.id || null,
+      farmId: req.user?.farm_roles?.[0]?.farm?.id || null
     };
     
-    const model = await EquipmentModelClient.create(equipmentModelData);
+    const model = await EquipmentModelService.create(req.body, userContext);
     res.status(201).json({
       success: true,
       data: model,
@@ -362,33 +270,8 @@ router.post('/equipment-models',
 
 router.put('/equipment-models/:id',
   validateId,
-  asyncHandler(async (req, res, next) => {
-    const { name, make } = req.body;
-    
-    // Validate required fields
-    if (!name || !name.trim()) {
-      throw new AppError('Equipment model name is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    if (!make) {
-      throw new AppError('Equipment make is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Validate that the make exists
-    const makeExists = await EquipmentMakeClient.findById(make);
-    if (!makeExists) {
-      throw new AppError('Referenced equipment make not found', 400, 'INVALID_MAKE_REFERENCE');
-    }
-    
-    // Check name uniqueness for this make excluding current record
-    const isUnique = await EquipmentModelClient.checkNameUniqueForMake(name, make, req.params.id);
-    if (!isUnique) {
-      throw new AppError('Equipment model name already exists for this make', 409, 'DUPLICATE_NAME');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    const model = await EquipmentModelClient.update(req.params.id, req.body);
+    const model = await EquipmentModelService.update(req.params.id, req.body);
     res.json({
       success: true,
       data: model,
@@ -400,7 +283,7 @@ router.put('/equipment-models/:id',
 router.delete('/equipment-models/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    const model = await EquipmentModelClient.delete(req.params.id);
+    const model = await EquipmentModelService.delete(req.params.id);
     res.json({
       success: true,
       data: model,
@@ -413,7 +296,7 @@ router.delete('/equipment-models/:id',
 router.get('/equipment-trims',
   validateEquipmentTrimsQuery,
   asyncHandler(async (req, res) => {
-    const result = await EquipmentTrimClient.findAll(req.query);
+    const result = await EquipmentTrimService.findAll(req.query);
     res.json({
       success: true,
       data: result.data,
@@ -425,7 +308,7 @@ router.get('/equipment-trims',
 router.get('/equipment-trims/dropdown',
   asyncHandler(async (req, res) => {
     const { make, model } = req.query;
-    const trims = await EquipmentTrimClient.findForDropdown(make, model);
+    const trims = await EquipmentTrimService.findForDropdown(make, model);
     res.json({
       success: true,
       data: trims
@@ -436,7 +319,7 @@ router.get('/equipment-trims/dropdown',
 router.get('/equipment-trims/by-make-model/:makeId/:modelId',
   validateMakeAndModelIds,
   asyncHandler(async (req, res) => {
-    const trims = await EquipmentTrimClient.findByMakeAndModel(req.params.makeId, req.params.modelId);
+    const trims = await EquipmentTrimService.findByMakeAndModel(req.params.makeId, req.params.modelId);
     res.json({
       success: true,
       data: trims
@@ -447,7 +330,7 @@ router.get('/equipment-trims/by-make-model/:makeId/:modelId',
 router.get('/equipment-trims/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    const trim = await EquipmentTrimClient.findById(req.params.id);
+    const trim = await EquipmentTrimService.findById(req.params.id);
     res.json({
       success: true,
       data: trim
@@ -457,51 +340,14 @@ router.get('/equipment-trims/:id',
 
 router.post('/equipment-trims',
   optionalAuth,
-  asyncHandler(async (req, res, next) => {
-    const { name, make, model } = req.body;
-    
-    // Validate required fields
-    if (!name || !name.trim()) {
-      throw new AppError('Equipment trim name is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Validate references exist if provided
-    if (make) {
-      const makeExists = await EquipmentMakeClient.findById(make);
-      if (!makeExists) {
-        throw new AppError('Referenced equipment make not found', 400, 'INVALID_MAKE_REFERENCE');
-      }
-    }
-    
-    if (model) {
-      const modelExists = await EquipmentModelClient.findById(model);
-      if (!modelExists) {
-        throw new AppError('Referenced equipment model not found', 400, 'INVALID_MODEL_REFERENCE');
-      }
-      
-      // Validate model belongs to make if both are provided
-      if (make && modelExists.make !== make) {
-        throw new AppError('Selected model does not belong to the selected make', 400, 'INVALID_MODEL_MAKE_COMBINATION');
-      }
-    }
-    
-    // Check name uniqueness within make/model combination
-    const isUnique = await EquipmentTrimClient.checkNameUnique(name, null, make, model);
-    if (!isUnique) {
-      throw new AppError('Equipment trim name already exists for this make/model combination', 409, 'DUPLICATE_NAME');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    // Add user information to the request body if user is authenticated
-    const equipmentTrimData = {
-      ...req.body,
-      created_by: req.user?.id || null,
-      created_in: req.user?.farm_roles?.[0]?.farm?.id || null
+    // Prepare user context
+    const userContext = {
+      userId: req.user?.id || null,
+      farmId: req.user?.farm_roles?.[0]?.farm?.id || null
     };
     
-    const trim = await EquipmentTrimClient.create(equipmentTrimData);
+    const trim = await EquipmentTrimService.create(req.body, userContext);
     res.status(201).json({
       success: true,
       data: trim,
@@ -512,44 +358,8 @@ router.post('/equipment-trims',
 
 router.put('/equipment-trims/:id',
   validateId,
-  asyncHandler(async (req, res, next) => {
-    const { name, make, model } = req.body;
-    
-    // Validate required fields
-    if (!name || !name.trim()) {
-      throw new AppError('Equipment trim name is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Validate references exist if provided
-    if (make) {
-      const makeExists = await EquipmentMakeClient.findById(make);
-      if (!makeExists) {
-        throw new AppError('Referenced equipment make not found', 400, 'INVALID_MAKE_REFERENCE');
-      }
-    }
-    
-    if (model) {
-      const modelExists = await EquipmentModelClient.findById(model);
-      if (!modelExists) {
-        throw new AppError('Referenced equipment model not found', 400, 'INVALID_MODEL_REFERENCE');
-      }
-      
-      // Validate model belongs to make if both are provided
-      if (make && modelExists.make !== make) {
-        throw new AppError('Selected model does not belong to the selected make', 400, 'INVALID_MODEL_MAKE_COMBINATION');
-      }
-    }
-    
-    // Check name uniqueness within make/model combination excluding current record
-    const isUnique = await EquipmentTrimClient.checkNameUnique(name, req.params.id, make, model);
-    if (!isUnique) {
-      throw new AppError('Equipment trim name already exists for this make/model combination', 409, 'DUPLICATE_NAME');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    const trim = await EquipmentTrimClient.update(req.params.id, req.body);
+    const trim = await EquipmentTrimService.update(req.params.id, req.body);
     res.json({
       success: true,
       data: trim,
@@ -561,7 +371,7 @@ router.put('/equipment-trims/:id',
 router.delete('/equipment-trims/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    const trim = await EquipmentTrimClient.delete(req.params.id);
+    const trim = await EquipmentTrimService.delete(req.params.id);
     res.json({
       success: true,
       data: trim,
@@ -574,7 +384,7 @@ router.delete('/equipment-trims/:id',
 router.get('/equipment-catalog',
   validatePaginatedQuery,
   asyncHandler(async (req, res) => {
-    const result = await EquipmentCatalogClient.findAll(req.query);
+    const result = await EquipmentService.findAll(req.query);
     res.json({
       success: true,
       data: result.data,
@@ -586,7 +396,7 @@ router.get('/equipment-catalog',
 router.get('/equipment-catalog/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    const equipment = await EquipmentCatalogClient.findById(req.params.id);
+    const equipment = await EquipmentService.findById(req.params.id);
     res.json({
       success: true,
       data: equipment
@@ -597,7 +407,7 @@ router.get('/equipment-catalog/:id',
 router.get('/equipment-models/:makeId/:modelId/trims',
   validateMakeAndModelIds,
   asyncHandler(async (req, res) => {
-    const trims = await EquipmentCatalogClient.findTrimsForModel(req.params.makeId, req.params.modelId);
+    const trims = await EquipmentService.findTrimsForModel(req.params.makeId, req.params.modelId);
     res.json({
       success: true,
       data: trims
@@ -606,41 +416,8 @@ router.get('/equipment-models/:makeId/:modelId/trims',
 );
 
 router.post('/equipment-catalog',
-  // Validate equipment catalog creation
-  asyncHandler(async (req, res, next) => {
-    const { type, make, model, trim, year } = req.body;
-    
-    // Validate required fields
-    if (!type || !make || !model) {
-      throw new AppError('Type, make, and model are required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Validate references exist
-    const [typeExists, makeExists, modelExists] = await Promise.all([
-      EquipmentTypeClient.findById(type),
-      EquipmentMakeClient.findById(make),
-      EquipmentModelClient.findById(model)
-    ]);
-    
-    if (!typeExists) {
-      throw new AppError('Referenced equipment type not found', 400, 'INVALID_TYPE_REFERENCE');
-    }
-    if (!makeExists) {
-      throw new AppError('Referenced equipment make not found', 400, 'INVALID_MAKE_REFERENCE');
-    }
-    if (!modelExists) {
-      throw new AppError('Referenced equipment model not found', 400, 'INVALID_MODEL_REFERENCE');
-    }
-    
-    // Validate model belongs to make
-    if (modelExists.make !== make) {
-      throw new AppError('Selected model does not belong to the selected make', 400, 'INVALID_MODEL_MAKE_COMBINATION');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    const equipment = await EquipmentCatalogClient.create(req.body);
+    const equipment = await EquipmentService.create(req.body);
     res.status(201).json({
       success: true,
       data: equipment,
@@ -651,40 +428,8 @@ router.post('/equipment-catalog',
 
 router.put('/equipment-catalog/:id',
   validateId,
-  asyncHandler(async (req, res, next) => {
-    const { type, make, model, trim, year } = req.body;
-    
-    // Validate required fields
-    if (!type || !make || !model) {
-      throw new AppError('Type, make, and model are required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Validate references exist
-    const [typeExists, makeExists, modelExists] = await Promise.all([
-      EquipmentTypeClient.findById(type),
-      EquipmentMakeClient.findById(make),
-      EquipmentModelClient.findById(model)
-    ]);
-    
-    if (!typeExists) {
-      throw new AppError('Referenced equipment type not found', 400, 'INVALID_TYPE_REFERENCE');
-    }
-    if (!makeExists) {
-      throw new AppError('Referenced equipment make not found', 400, 'INVALID_MAKE_REFERENCE');
-    }
-    if (!modelExists) {
-      throw new AppError('Referenced equipment model not found', 400, 'INVALID_MODEL_REFERENCE');
-    }
-    
-    // Validate model belongs to make
-    if (modelExists.make !== make) {
-      throw new AppError('Selected model does not belong to the selected make', 400, 'INVALID_MODEL_MAKE_COMBINATION');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    const equipment = await EquipmentCatalogClient.update(req.params.id, req.body);
+    const equipment = await EquipmentService.update(req.params.id, req.body);
     res.json({
       success: true,
       data: equipment,
@@ -696,7 +441,7 @@ router.put('/equipment-catalog/:id',
 router.delete('/equipment-catalog/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    await EquipmentCatalogClient.delete(req.params.id);
+    await EquipmentService.delete(req.params.id);
     res.json({
       success: true,
       message: 'Equipment catalog entry deleted successfully'
@@ -708,7 +453,7 @@ router.delete('/equipment-catalog/:id',
 router.get('/part-types',
   validatePaginatedQuery,
   asyncHandler(async (req, res) => {
-    const result = await PartTypeClient.findAll(req.query);
+    const result = await PartTypeService.findAll(req.query);
     res.json({
       success: true,
       data: result.data,
@@ -719,7 +464,7 @@ router.get('/part-types',
 
 router.get('/part-types/dropdown',
   asyncHandler(async (req, res) => {
-    const partTypes = await PartTypeClient.findForDropdown();
+    const partTypes = await PartTypeService.findForDropdown();
     res.json({
       success: true,
       data: partTypes
@@ -730,7 +475,7 @@ router.get('/part-types/dropdown',
 router.get('/part-types/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    const partType = await PartTypeClient.findById(req.params.id);
+    const partType = await PartTypeService.findById(req.params.id);
     res.json({
       success: true,
       data: partType
@@ -740,31 +485,14 @@ router.get('/part-types/:id',
 
 router.post('/part-types',
   optionalAuth,
-  asyncHandler(async (req, res, next) => {
-    const { name, description } = req.body;
-    
-    // Validate required fields
-    if (!name || !name.trim()) {
-      throw new AppError('Part type name is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Check name uniqueness
-    const isUnique = await PartTypeClient.checkNameUnique(name);
-    if (!isUnique) {
-      throw new AppError('Part type name already exists', 409, 'DUPLICATE_NAME');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    // Add user information to the request body if user is authenticated
-    const partTypeData = {
-      ...req.body,
-      created_by: req.user?.id || null,
-      created_in: req.user?.farm_roles?.[0]?.farm?.id || null
+    // Prepare user context
+    const userContext = {
+      userId: req.user?.id || null,
+      farmId: req.user?.farm_roles?.[0]?.farm?.id || null
     };
     
-    const partType = await PartTypeClient.create(partTypeData);
+    const partType = await PartTypeService.create(req.body, userContext);
     res.status(201).json({
       success: true,
       data: partType,
@@ -775,24 +503,8 @@ router.post('/part-types',
 
 router.put('/part-types/:id',
   validateId,
-  asyncHandler(async (req, res, next) => {
-    const { name, description } = req.body;
-    
-    // Validate required fields
-    if (!name || !name.trim()) {
-      throw new AppError('Part type name is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Check name uniqueness excluding current record
-    const isUnique = await PartTypeClient.checkNameUnique(name, req.params.id);
-    if (!isUnique) {
-      throw new AppError('Part type name already exists', 409, 'DUPLICATE_NAME');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    const partType = await PartTypeClient.update(req.params.id, req.body);
+    const partType = await PartTypeService.update(req.params.id, req.body);
     res.json({
       success: true,
       data: partType,
@@ -804,7 +516,7 @@ router.put('/part-types/:id',
 router.delete('/part-types/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    await PartTypeClient.delete(req.params.id);
+    await PartTypeService.delete(req.params.id);
     res.json({
       success: true,
       message: 'Part type deleted successfully'
@@ -816,7 +528,7 @@ router.delete('/part-types/:id',
 router.get('/consumable-types',
   validatePaginatedQuery,
   asyncHandler(async (req, res) => {
-    const result = await ConsumableTypeClient.findAll(req.query);
+    const result = await ConsumableTypeService.findAll(req.query);
     res.json({
       success: true,
       data: result.data,
@@ -827,7 +539,7 @@ router.get('/consumable-types',
 
 router.get('/consumable-types/dropdown',
   asyncHandler(async (req, res) => {
-    const consumableTypes = await ConsumableTypeClient.findForDropdown();
+    const consumableTypes = await ConsumableTypeService.findForDropdown();
     res.json({
       success: true,
       data: consumableTypes
@@ -838,7 +550,7 @@ router.get('/consumable-types/dropdown',
 router.get('/consumable-types/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    const consumableType = await ConsumableTypeClient.findById(req.params.id);
+    const consumableType = await ConsumableTypeService.findById(req.params.id);
     res.json({
       success: true,
       data: consumableType
@@ -848,31 +560,14 @@ router.get('/consumable-types/:id',
 
 router.post('/consumable-types',
   optionalAuth,
-  asyncHandler(async (req, res, next) => {
-    const { name, description } = req.body;
-    
-    // Validate required fields
-    if (!name || !name.trim()) {
-      throw new AppError('Consumable type name is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Check name uniqueness
-    const isUnique = await ConsumableTypeClient.checkNameUnique(name);
-    if (!isUnique) {
-      throw new AppError('Consumable type name already exists', 409, 'DUPLICATE_NAME');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    // Add user information to the request body if user is authenticated
-    const consumableTypeData = {
-      ...req.body,
-      created_by: req.user?.id || null,
-      created_in: req.user?.farm_roles?.[0]?.farm?.id || null
+    // Prepare user context
+    const userContext = {
+      userId: req.user?.id || null,
+      farmId: req.user?.farm_roles?.[0]?.farm?.id || null
     };
     
-    const consumableType = await ConsumableTypeClient.create(consumableTypeData);
+    const consumableType = await ConsumableTypeService.create(req.body, userContext);
     res.status(201).json({
       success: true,
       data: consumableType,
@@ -883,24 +578,8 @@ router.post('/consumable-types',
 
 router.put('/consumable-types/:id',
   validateId,
-  asyncHandler(async (req, res, next) => {
-    const { name, description } = req.body;
-    
-    // Validate required fields
-    if (!name || !name.trim()) {
-      throw new AppError('Consumable type name is required', 400, 'MISSING_REQUIRED_FIELDS');
-    }
-    
-    // Check name uniqueness excluding current record
-    const isUnique = await ConsumableTypeClient.checkNameUnique(name, req.params.id);
-    if (!isUnique) {
-      throw new AppError('Consumable type name already exists', 409, 'DUPLICATE_NAME');
-    }
-    
-    next();
-  }),
   asyncHandler(async (req, res) => {
-    const consumableType = await ConsumableTypeClient.update(req.params.id, req.body);
+    const consumableType = await ConsumableTypeService.update(req.params.id, req.body);
     res.json({
       success: true,
       data: consumableType,
@@ -912,7 +591,7 @@ router.put('/consumable-types/:id',
 router.delete('/consumable-types/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    await ConsumableTypeClient.delete(req.params.id);
+    await ConsumableTypeService.delete(req.params.id);
     res.json({
       success: true,
       message: 'Consumable type deleted successfully'
