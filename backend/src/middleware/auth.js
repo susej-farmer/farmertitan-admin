@@ -8,10 +8,8 @@ const { AppError } = require('./errorHandler');
 const verifyToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    console.log('Auth header received:', authHeader ? 'Bearer [token...]' : 'No header');
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('Missing or invalid auth header');
       throw new AppError('Authorization token required', 401, 'UNAUTHORIZED');
     }
     

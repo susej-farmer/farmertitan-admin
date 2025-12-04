@@ -26,9 +26,21 @@ class FarmService {
       }
 
       const farm = await FarmClient.findById(id);
-      
-      // Apply any business logic transformations here if needed
-      return farm;
+
+      // Obtener conteos adicionales en paralelo
+      const [farmUsers, equipmentCount] = await Promise.all([
+        FarmClient.getFarmUsers(id),
+        FarmClient.getEquipmentCount(id)
+      ]);
+
+      // Agregar conteos al objeto farm
+      const farmWithCounts = {
+        ...farm,
+        user_count: farmUsers.length,
+        equipment_count: equipmentCount
+      };
+
+      return farmWithCounts;
     } catch (error) {
       console.error('Error in FarmService.findById:', error);
       throw error;

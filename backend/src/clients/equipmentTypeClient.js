@@ -78,12 +78,16 @@ class EquipmentTypeClient {
       
       // Get related user and farm names if IDs exist
       if (data.created_by) {
-        const { data: userData } = await supabase
-          .from('user_profiles')
-          .select('email')
-          .eq('id', data.created_by)
-          .single();
-        data.created_by_name = userData?.email || null;
+        const { data: userResult } = await supabase
+          .rpc('get_user_profile', { p_user_id: data.created_by });
+
+        if (userResult?.success && userResult?.data) {
+          data.created_by_name = userResult.data.display_name || userResult.data.email || null;
+          data.created_by_email = userResult.data.email || null;
+        } else {
+          data.created_by_name = null;
+          data.created_by_email = null;
+        }
       }
       
       if (data.created_in) {
@@ -97,7 +101,9 @@ class EquipmentTypeClient {
       
       return data;
     } catch (error) {
+      // Re-lanzar errores operacionales sin imprimir
       if (error.isOperational) throw error;
+      // Solo imprimir errores no esperados
       console.error('Failed to find equipment type by ID', error, { id });
       throw error;
     }
@@ -144,17 +150,19 @@ class EquipmentTypeClient {
         let created_by_name = null;
         let created_in_name = null;
         
-        // Get user email if created_by exists
+        // Get user info if created_by exists
         if (item.created_by) {
           try {
-            const { data: userData, error: userError } = await supabase
-              .from('user_profiles')
-              .select('email')
-              .eq('id', item.created_by)
-              .single();
-            created_by_name = userData?.email || item.created_by; // Fallback to UUID if no email
+            const { data: userResult } = await supabase
+              .rpc('get_user_profile', { p_user_id: item.created_by });
+
+            if (userResult?.success && userResult?.data) {
+              created_by_name = userResult.data.display_name || userResult.data.email || item.created_by;
+            } else {
+              created_by_name = item.created_by; // Fallback to UUID
+            }
           } catch (err) {
-            console.warn('Failed to fetch user email for id:', item.created_by, err);
+            console.warn('Failed to fetch user info for id:', item.created_by, err);
             created_by_name = item.created_by; // Fallback to UUID
           }
         }
@@ -334,19 +342,40 @@ class EquipmentTypeClient {
     }
   }
 
+  static async findByName(name) {
+    try {
+      const supabase = dbConnection.getClient();
+
+      const { data, error } = await supabase
+        .from('_equipment_type')
+        .select('*')
+        .eq('name', name)
+        .maybeSingle(); // Use maybeSingle() instead of single() to handle not found gracefully
+
+      if (error) {
+        throw error;
+      }
+
+      return data; // Returns null if not found
+    } catch (error) {
+      console.error('Failed to find equipment type by name', error, { name });
+      throw error;
+    }
+  }
+
   static async findForDropdown() {
     try {
       const supabase = dbConnection.getClient();
-      
+
       const { data, error } = await supabase
         .from('_equipment_type')
         .select('id, name')
         .order('name', { ascending: true });
-      
+
       if (error) {
         throw error;
       }
-      
+
       return data;
     } catch (error) {
       console.error('Failed to find equipment types for dropdown', error);

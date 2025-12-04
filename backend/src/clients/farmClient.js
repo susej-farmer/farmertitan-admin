@@ -254,22 +254,22 @@ class FarmClient {
   static async getStatistics() {
     try {
       const supabase = dbConnection.getClient();
-      
+
       const { count: totalFarms } = await supabase
         .from('farm')
         .select('*', { count: 'exact', head: true });
-      
+
       const { count: activeFarms } = await supabase
         .from('farm')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active');
-      
+
       const { data: totalAcres } = await supabase
         .from('farm')
         .select('acres');
-      
+
       const totalAcresSum = totalAcres?.reduce((sum, farm) => sum + (farm.acres || 0), 0) || 0;
-      
+
       return {
         total_farms: totalFarms || 0,
         active_farms: activeFarms || 0,
@@ -279,6 +279,63 @@ class FarmClient {
       };
     } catch (error) {
       console.error('Failed to get farm statistics', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener usuarios de una granja usando la función SQL get_farm_users
+   * @param {string} farmId - UUID de la granja
+   * @returns {Promise<Array>} Array de usuarios de la granja
+   */
+  static async getFarmUsers(farmId) {
+    try {
+      const supabase = dbConnection.getClient();
+
+      const { data, error } = await supabase.rpc('get_farm_users', {
+        p_farm_id: farmId
+      });
+
+      if (error) {
+        console.error('Failed to get farm users:', error);
+        throw error;
+      }
+
+      // La función retorna { data: [...], success: true }
+      if (data && data.success === true && Array.isArray(data.data)) {
+        return data.data;
+      }
+
+      // Fallback si la estructura es diferente
+      return data || [];
+    } catch (error) {
+      console.error('Failed to get farm users', error, { farmId });
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener cantidad de equipos de una granja
+   * @param {string} farmId - UUID de la granja
+   * @returns {Promise<number>} Cantidad de equipos
+   */
+  static async getEquipmentCount(farmId) {
+    try {
+      const supabase = dbConnection.getClient();
+
+      const { count, error } = await supabase
+        .from('equipment')
+        .select('*', { count: 'exact', head: true })
+        .eq('farm', farmId);
+
+      if (error) {
+        console.error('Failed to get equipment count:', error);
+        throw error;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('Failed to get equipment count', error, { farmId });
       throw error;
     }
   }

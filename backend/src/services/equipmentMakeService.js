@@ -26,11 +26,14 @@ class EquipmentMakeService {
       }
 
       const equipmentMake = await EquipmentMakeClient.findById(id);
-      
+
       // Apply any business logic transformations here if needed
       return equipmentMake;
     } catch (error) {
-      console.error('Error in EquipmentMakeService.findById:', error);
+      // Solo imprimir si no es error operacional
+      if (!error.isOperational) {
+        console.error('Error in EquipmentMakeService.findById:', error);
+      }
       throw error;
     }
   }
@@ -143,12 +146,38 @@ class EquipmentMakeService {
     }
   }
 
+  static async findOrCreateUnknown(userId = null) {
+    try {
+      // Try to find existing "UNKNOWN" equipment make
+      let unknownMake = await EquipmentMakeClient.findByName('UNKNOWN');
+
+      if (unknownMake) {
+        console.log('Found existing UNKNOWN equipment make:', unknownMake.id);
+        return unknownMake;
+      }
+
+      // If not found, create it
+      console.log('Creating UNKNOWN equipment make...');
+      unknownMake = await EquipmentMakeClient.create({
+        name: 'UNKNOWN',
+        created_by: userId,
+        created_in: null
+      });
+
+      console.log('Created UNKNOWN equipment make:', unknownMake.id);
+      return unknownMake;
+    } catch (error) {
+      console.error('Error in EquipmentMakeService.findOrCreateUnknown:', error);
+      throw error;
+    }
+  }
+
   static async checkNameUnique(name, excludeId = null) {
     try {
       if (!name || !name.trim()) {
         throw new AppError('Name is required for uniqueness check', 400, 'MISSING_NAME');
       }
-      
+
       return await EquipmentMakeClient.checkNameUnique(name.trim(), excludeId);
     } catch (error) {
       console.error('Error in EquipmentMakeService.checkNameUnique:', error);

@@ -26,11 +26,14 @@ class EquipmentTypeService {
       }
 
       const equipmentType = await EquipmentTypeClient.findById(id);
-      
+
       // Apply any business logic transformations here if needed
       return equipmentType;
     } catch (error) {
-      console.error('Error in EquipmentTypeService.findById:', error);
+      // Solo imprimir si no es error operacional
+      if (!error.isOperational) {
+        console.error('Error in EquipmentTypeService.findById:', error);
+      }
       throw error;
     }
   }
@@ -114,12 +117,39 @@ class EquipmentTypeService {
     }
   }
 
+  static async findOrCreateUnknown(userId = null) {
+    try {
+      // Try to find existing "UNKNOWN" equipment type
+      let unknownType = await EquipmentTypeClient.findByName('UNKNOWN');
+
+      if (unknownType) {
+        console.log('Found existing UNKNOWN equipment type:', unknownType.id);
+        return unknownType;
+      }
+
+      // If not found, create it
+      console.log('Creating UNKNOWN equipment type...');
+      unknownType = await EquipmentTypeClient.create({
+        name: 'UNKNOWN',
+        description: 'Placeholder for equipment with unknown type',
+        created_by: userId,
+        created_in: null
+      });
+
+      console.log('Created UNKNOWN equipment type:', unknownType.id);
+      return unknownType;
+    } catch (error) {
+      console.error('Error in EquipmentTypeService.findOrCreateUnknown:', error);
+      throw error;
+    }
+  }
+
   static async checkNameUnique(name, excludeId = null) {
     try {
       if (!name || !name.trim()) {
         throw new AppError('Name is required for uniqueness check', 400, 'MISSING_NAME');
       }
-      
+
       return await EquipmentTypeClient.checkNameUnique(name.trim(), excludeId);
     } catch (error) {
       console.error('Error in EquipmentTypeService.checkNameUnique:', error);

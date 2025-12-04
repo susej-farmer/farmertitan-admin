@@ -1,5 +1,5 @@
 const EquipmentClient = require('../clients/equipmentClient');
-const EquipmentService = require('./equipmentService'); // For catalog operations
+const EquipmentCatalogService = require('./equipmentCatalogService'); // For catalog operations
 const TaskSeriesClient = require('../clients/taskSeriesClient');
 const TaskClient = require('../clients/taskClient');
 const TimeClient = require('../clients/timeClient');
@@ -355,7 +355,7 @@ class EquipmentManagementService {
   static async checkBusinessRulesForCreate(equipmentData) {
     // Check if catalog entry exists
     try {
-      await EquipmentService.findById(equipmentData._equipment);
+      await EquipmentCatalogService.findById(equipmentData._equipment);
     } catch (error) {
       throw new AppError('Referenced equipment catalog entry not found', 400, 'INVALID_CATALOG_REFERENCE');
     }

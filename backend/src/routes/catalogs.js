@@ -5,7 +5,7 @@ const EquipmentTypeService = require('../services/equipmentTypeService');
 const EquipmentMakeService = require('../services/equipmentMakeService');
 const EquipmentModelService = require('../services/equipmentModelService');
 const EquipmentTrimService = require('../services/equipmentTrimService');
-const EquipmentService = require('../services/equipmentService');
+const EquipmentCatalogService = require('../services/equipmentCatalogService');
 const PartTypeService = require('../services/partTypeService');
 const ConsumableTypeService = require('../services/consumableTypeService');
 
@@ -384,7 +384,7 @@ router.delete('/equipment-trims/:id',
 router.get('/equipment-catalog',
   validatePaginatedQuery,
   asyncHandler(async (req, res) => {
-    const result = await EquipmentService.findAll(req.query);
+    const result = await EquipmentCatalogService.findAll(req.query);
     res.json({
       success: true,
       data: result.data,
@@ -396,7 +396,7 @@ router.get('/equipment-catalog',
 router.get('/equipment-catalog/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    const equipment = await EquipmentService.findById(req.params.id);
+    const equipment = await EquipmentCatalogService.findById(req.params.id);
     res.json({
       success: true,
       data: equipment
@@ -407,7 +407,7 @@ router.get('/equipment-catalog/:id',
 router.get('/equipment-models/:makeId/:modelId/trims',
   validateMakeAndModelIds,
   asyncHandler(async (req, res) => {
-    const trims = await EquipmentService.findTrimsForModel(req.params.makeId, req.params.modelId);
+    const trims = await EquipmentCatalogService.findTrimsForModel(req.params.makeId, req.params.modelId);
     res.json({
       success: true,
       data: trims
@@ -417,7 +417,7 @@ router.get('/equipment-models/:makeId/:modelId/trims',
 
 router.post('/equipment-catalog',
   asyncHandler(async (req, res) => {
-    const equipment = await EquipmentService.create(req.body);
+    const equipment = await EquipmentCatalogService.create(req.body);
     res.status(201).json({
       success: true,
       data: equipment,
@@ -429,7 +429,7 @@ router.post('/equipment-catalog',
 router.put('/equipment-catalog/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    const equipment = await EquipmentService.update(req.params.id, req.body);
+    const equipment = await EquipmentCatalogService.update(req.params.id, req.body);
     res.json({
       success: true,
       data: equipment,
@@ -441,7 +441,7 @@ router.put('/equipment-catalog/:id',
 router.delete('/equipment-catalog/:id',
   validateId,
   asyncHandler(async (req, res) => {
-    await EquipmentService.delete(req.params.id);
+    await EquipmentCatalogService.delete(req.params.id);
     res.json({
       success: true,
       message: 'Equipment catalog entry deleted successfully'

@@ -135,7 +135,9 @@ class EquipmentCatalogClient {
           model: equipmentData.model,
           trim: equipmentData.trim || null,
           year: equipmentData.year || null,
-          metadata: equipmentData.metadata || {}
+          metadata: equipmentData.metadata || {},
+          created_by: equipmentData.created_by || null,
+          created_in: equipmentData.created_in || null
         }])
         .select(`
           *,
@@ -290,7 +292,7 @@ class EquipmentCatalogClient {
 
   static async findTrimsForModel(makeId, modelId) {
     const client = new EquipmentCatalogClient();
-    
+
     try {
       const { data, error } = await client.supabase
         .from('_equipment_trim')
@@ -298,15 +300,62 @@ class EquipmentCatalogClient {
         .eq('make', makeId)
         .eq('model', modelId)
         .order('name');
-      
+
       if (error) {
         console.error('Equipment trims query error:', error);
         throw error;
       }
-      
+
       return data || [];
     } catch (error) {
       console.error('Error in EquipmentCatalogClient.findTrimsForModel:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca un _equipment por atributos (campos opcionales excepto type y make)
+   * @param {Object} attributes - { type, make, model?, year? }
+   * @returns {Promise<Object|null>} _equipment encontrado o null
+   */
+  static async findByAttributes(attributes) {
+    const client = new EquipmentCatalogClient();
+    const { type, make, model, year } = attributes;
+
+    try {
+      let query = client.supabase
+        .from('_equipment')
+        .select(`
+          *,
+          _equipment_type!inner(name),
+          _equipment_make!inner(name),
+          _equipment_model(name),
+          _equipment_trim(name)
+        `)
+        .eq('type', type)
+        .eq('make', make);
+
+      // Agregar filtros opcionales
+      if (model) {
+        query = query.eq('model', model);
+      } else {
+        query = query.is('model', null);
+      }
+
+      if (year) {
+        query = query.eq('year', year);
+      }
+
+      const { data, error } = await query.maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Equipment findByAttributes error:', error);
+        throw error;
+      }
+
+      return data || null;
+    } catch (error) {
+      console.error('Error in EquipmentCatalogClient.findByAttributes:', error);
       throw error;
     }
   }

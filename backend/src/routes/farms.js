@@ -33,6 +33,33 @@ router.get('/',
   })
 );
 
+// Get all equipment for a specific farm (must be before /:id to avoid route conflict)
+router.get('/:id/equipment',
+  verifyToken,
+  requireAuth,
+  validateId,
+  validatePagination,
+  asyncHandler(async (req, res) => {
+    const EquipmentService = require('../services/equipmentService');
+
+    const options = {
+      page: parseInt(req.query.page) || 1,
+      limit: parseInt(req.query.limit) || 20,
+      search: req.query.search || '',
+      status: req.query.status || null,
+      equipment_type: req.query.equipment_type || null
+    };
+
+    const result = await EquipmentService.findByFarm(req.params.id, options);
+
+    res.json({
+      success: true,
+      data: result.data,
+      pagination: result.pagination
+    });
+  })
+);
+
 // Get farm by ID
 router.get('/:id',
   verifyToken,

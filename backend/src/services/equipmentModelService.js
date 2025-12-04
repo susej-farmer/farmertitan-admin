@@ -27,11 +27,14 @@ class EquipmentModelService {
       }
 
       const equipmentModel = await EquipmentModelClient.findById(id);
-      
+
       // Apply any business logic transformations here if needed
       return equipmentModel;
     } catch (error) {
-      console.error('Error in EquipmentModelService.findById:', error);
+      // Solo imprimir si no es error operacional
+      if (!error.isOperational) {
+        console.error('Error in EquipmentModelService.findById:', error);
+      }
       throw error;
     }
   }
@@ -123,16 +126,48 @@ class EquipmentModelService {
     }
   }
 
+  static async findOrCreateUnknown(makeId, userId = null) {
+    try {
+      // Validate makeId
+      if (!makeId) {
+        throw new AppError('Make ID is required', 400, 'MISSING_MAKE_ID');
+      }
+
+      // Try to find existing "UNKNOWN" equipment model for this make
+      let unknownModel = await EquipmentModelClient.findByNameAndMake('UNKNOWN', makeId);
+
+      if (unknownModel) {
+        console.log('Found existing UNKNOWN equipment model for make:', makeId, '- Model ID:', unknownModel.id);
+        return unknownModel;
+      }
+
+      // If not found, create it
+      console.log('Creating UNKNOWN equipment model for make:', makeId);
+      unknownModel = await EquipmentModelClient.create({
+        name: 'UNKNOWN',
+        make: makeId,
+        created_by: userId,
+        created_in: null
+      });
+
+      console.log('Created UNKNOWN equipment model:', unknownModel.id);
+      return unknownModel;
+    } catch (error) {
+      console.error('Error in EquipmentModelService.findOrCreateUnknown:', error);
+      throw error;
+    }
+  }
+
   static async checkNameUniqueForMake(name, makeId, excludeId = null) {
     try {
       if (!name || !name.trim()) {
         throw new AppError('Name is required for uniqueness check', 400, 'MISSING_NAME');
       }
-      
+
       if (!makeId) {
         throw new AppError('Make ID is required for uniqueness check', 400, 'MISSING_MAKE_ID');
       }
-      
+
       return await EquipmentModelClient.checkNameUniqueForMake(name.trim(), makeId, excludeId);
     } catch (error) {
       console.error('Error in EquipmentModelService.checkNameUniqueForMake:', error);

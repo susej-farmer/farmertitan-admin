@@ -130,10 +130,28 @@ router.get('/me', verifyToken, requireAuth, asyncHandler(async (req, res) => {
 }));
 
 // Logout endpoint
-router.post('/logout', verifyToken, requireAuth, asyncHandler(async (req, res) => {
+// Note: No token verification required - even expired tokens should be able to logout
+router.post('/logout', asyncHandler(async (req, res) => {
   try {
+    // Attempt to logout if token is provided
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      // Try to get user info from token (even if expired)
+      try {
+        const { user } = await AuthClient.verifyToken(token);
+        if (user) {
+          console.log(`User ${user.id} logged out successfully`);
+        }
+      } catch (error) {
+        // Token might be expired, that's ok for logout
+        console.log('Logout with expired/invalid token - proceeding with logout');
+      }
+    }
+
+    // Always perform logout operation
     await AuthClient.logout();
-    
+
     res.json({
       success: true,
       message: 'Logout successful'
@@ -141,6 +159,7 @@ router.post('/logout', verifyToken, requireAuth, asyncHandler(async (req, res) =
   } catch (error) {
     console.error('Logout error:', error);
     // Even if logout fails on Supabase side, we consider it successful from client perspective
+    // The token is expired/invalid anyway, so user is effectively logged out
     res.json({
       success: true,
       message: 'Logout successful'

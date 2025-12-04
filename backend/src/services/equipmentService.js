@@ -1,276 +1,197 @@
-const EquipmentCatalogClient = require('../clients/equipmentCatalogClient');
-const EquipmentTypeService = require('./equipmentTypeService');
-const EquipmentMakeService = require('./equipmentMakeService');
 const { AppError } = require('../middleware/errorHandler');
 
+/**
+ * Servicio para gestionar equipos físicos (tabla: equipment)
+ * Para operaciones del catálogo de equipos, usar EquipmentCatalogService
+ */
 class EquipmentService {
-  static async findAll(options = {}) {
-    try {
-      // Validate and sanitize input options
-      const validatedOptions = this.validateFindAllOptions(options);
-      
-      // Call the client to get data
-      const result = await EquipmentCatalogClient.findAll(validatedOptions);
-      
-      // Apply any business logic transformations here if needed
-      return result;
-    } catch (error) {
-      console.error('Error in EquipmentService.findAll:', error);
-      throw error;
-    }
+  /**
+   * Mapea schedule.type a usage type para initial_usage
+   * @param {string} scheduleType - Tipo de schedule (schedule:hours, schedule:distance, schedule:cron)
+   * @returns {string|null} Tipo de usage (hour, distance, datetime) o null
+   */
+  static mapScheduleTypeToUsageType(scheduleType) {
+    const mapping = {
+      'schedule:hours': 'hour',
+      'schedule:distance': 'distance',
+      'schedule:cron': 'datetime'
+    };
+    return mapping[scheduleType] || null;
   }
 
-  static async findById(id) {
-    try {
-      // Validate ID
-      if (!id) {
-        throw new AppError('Equipment ID is required', 400, 'MISSING_ID');
-      }
-
-      const equipment = await EquipmentCatalogClient.findById(id);
-      
-      // Apply any business logic transformations here if needed
-      return equipment;
-    } catch (error) {
-      console.error('Error in EquipmentService.findById:', error);
-      throw error;
-    }
-  }
-
-  static async findTrimsForModel(makeId, modelId) {
-    try {
-      // Validate IDs
-      if (!makeId || !modelId) {
-        throw new AppError('Make ID and Model ID are required', 400, 'MISSING_IDS');
-      }
-
-      const trims = await EquipmentCatalogClient.findTrimsForModel(makeId, modelId);
-      
-      // Apply any business logic transformations here if needed
-      return trims;
-    } catch (error) {
-      console.error('Error in EquipmentService.findTrimsForModel:', error);
-      throw error;
-    }
-  }
-
+  /**
+   * Crear un nuevo equipment físico
+   * @param {Object} equipmentData - Datos del equipment
+   * @param {string} equipmentData.name - Nombre del equipment
+   * @param {string} equipmentData.serial_number - Número de serie
+   * @param {string} equipmentData.license_number - Número de licencia
+   * @param {number} equipmentData.equipment_year - Año del equipo
+   * @param {number} equipmentData.year_purchased - Año de compra
+   * @param {boolean} equipmentData.lease_owned - Si es propio o arrendado
+   * @param {string} equipmentData.warranty_time - Tiempo de garantía
+   * @param {string} equipmentData.warranty_details - Detalles de garantía
+   * @param {string} equipmentData._equipment - ID del catálogo _equipment
+   * @param {string} equipmentData.farm_id - ID de la granja
+   * @param {Array} [equipmentData.default_task] - Tareas por defecto (opcional)
+   * @returns {Promise<Object>} Equipment creado
+   */
   static async create(equipmentData) {
     try {
-      // Validate input data
-      this.validateCreateData(equipmentData);
-      
-      // Check business rules
-      await this.checkBusinessRulesForCreate(equipmentData);
-      
-      const newEquipment = await EquipmentCatalogClient.create(equipmentData);
-      
-      // Apply any post-creation business logic here if needed
-      return newEquipment;
+      const EquipmentClient = require('../clients/equipmentClient');
+
+      // Validaciones básicas
+      if (!equipmentData.name || !equipmentData.farm_id) {
+        throw new AppError('Equipment name and farm_id are required', 400, 'MISSING_REQUIRED_FIELDS');
+      }
+
+      // Preparar maintenance_items desde default_task
+      let maintenance_items = [];
+      if (equipmentData.default_task && Array.isArray(equipmentData.default_task)) {
+        maintenance_items = equipmentData.default_task.map(task => ({
+          id: task.id,
+          schedule: {
+            type: task.schedule?.type || null,
+            value: task.schedule?.value || null,
+            metadata: task.schedule?.metadata || {}
+          },
+          name: task.name,
+          description: task.description,
+          maintenance_type: task.maintenance_type
+        }));
+      }
+
+      // Preparar initial_usage desde default_task (un objeto por cada schedule.type único)
+      let initial_usage = [];
+      if (equipmentData.default_task && Array.isArray(equipmentData.default_task)) {
+        const scheduleTypesMap = new Map();
+
+        equipmentData.default_task.forEach(task => {
+          if (task.schedule?.type && !scheduleTypesMap.has(task.schedule.type)) {
+            scheduleTypesMap.set(task.schedule.type, task.schedule.metadata || {});
+          }
+        });
+
+        initial_usage = Array.from(scheduleTypesMap.entries())
+          .map(([scheduleType, metadata]) => {
+            const usageType = this.mapScheduleTypeToUsageType(scheduleType);
+            if (!usageType) return null;
+
+            return {
+              type: usageType,
+              value: "0",
+              metadata: metadata
+            };
+          })
+          .filter(item => item !== null);
+      }
+
+      // Preparar datos para el RPC
+      const rpcData = {
+        name: equipmentData.name,
+        equipment_model_id: equipmentData.equipment_model_id || null,
+        make_id: equipmentData.make_id || null,
+        equipment_type_id: equipmentData.equipment_type_id || null,
+        farm_id: equipmentData.farm_id,
+        maintenance_items: maintenance_items,
+        initial_usage: initial_usage,
+        created_by: equipmentData.created_by || null,
+        serial_number: equipmentData.serial_number || null,
+
+        // Asegurar que year_purchased sea integer o null
+        year_purchased: equipmentData.year_purchased ? parseInt(equipmentData.year_purchased, 10) : null,
+
+        // Asegurar que lease_owned sea boolean
+        lease_owned: typeof equipmentData.lease_owned === 'boolean'
+          ? equipmentData.lease_owned
+          : Boolean(equipmentData.lease_owned),
+
+        warranty_time: equipmentData.warranty_time || null,
+        warranty_details: equipmentData.warranty_details || null
+      };
+
+      // Llamar al client para crear el equipment
+      const createdEquipment = await EquipmentClient.create(rpcData);
+
+      // Verificar que el equipo se creó exitosamente
+      if (!createdEquipment || !createdEquipment.id) {
+        // Si el RPC retornó algo pero sin ID, puede ser un error no capturado
+        console.error('Equipment creation returned unexpected result:', createdEquipment);
+        throw new AppError(
+          'Equipment creation failed: No ID returned from database',
+          500,
+          'EQUIPMENT_CREATION_FAILED'
+        );
+      }
+
+      console.log('Equipment created successfully in service layer', {
+        equipmentId: createdEquipment.id
+      });
+
+      return createdEquipment;
     } catch (error) {
       console.error('Error in EquipmentService.create:', error);
       throw error;
     }
   }
 
-  static async update(id, updateData) {
+  /**
+   * Buscar equipment por número de serie (global)
+   * @param {string} serialNumber - Número de serie
+   * @returns {Promise<Object|null>} Equipment encontrado o null
+   */
+  static async findBySerialNumber(serialNumber) {
     try {
-      // Validate input
-      if (!id) {
-        throw new AppError('Equipment ID is required', 400, 'MISSING_ID');
-      }
-      
-      this.validateUpdateData(updateData);
-      
-      // Check business rules
-      await this.checkBusinessRulesForUpdate(id, updateData);
-      
-      const updatedEquipment = await EquipmentCatalogClient.update(id, updateData);
-      
-      // Apply any post-update business logic here if needed
-      return updatedEquipment;
+      const EquipmentClient = require('../clients/equipmentClient');
+      return await EquipmentClient.findBySerialNumber(serialNumber);
     } catch (error) {
-      console.error('Error in EquipmentService.update:', error);
+      console.error('Error in EquipmentService.findBySerialNumber:', error);
       throw error;
     }
   }
 
-  static async delete(id) {
+  /**
+   * Buscar equipment por nombre y granja
+   * @param {string} equipmentName - Nombre del equipment
+   * @param {string} farmId - UUID de la granja
+   * @returns {Promise<Object|null>} Equipment encontrado o null
+   */
+  static async findByNameAndFarm(equipmentName, farmId) {
     try {
-      // Validate input
-      if (!id) {
-        throw new AppError('Equipment ID is required', 400, 'MISSING_ID');
+      const EquipmentClient = require('../clients/equipmentClient');
+      return await EquipmentClient.findByNameAndFarm(equipmentName, farmId);
+    } catch (error) {
+      console.error('Error in EquipmentService.findByNameAndFarm:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener todos los equipments de una granja con relaciones completas
+   * Incluye: farm, _equipment details, usage_tracking, y maintenance tasks
+   * @param {string} farmId - UUID de la granja
+   * @param {Object} options - Opciones de filtrado y paginación
+   * @param {number} [options.page=1] - Número de página
+   * @param {number} [options.limit=20] - Registros por página
+   * @param {string} [options.search=''] - Búsqueda por nombre o serial
+   * @param {string} [options.status=null] - Filtrar por estado
+   * @param {string} [options.equipment_type=null] - Filtrar por tipo de equipo
+   * @returns {Promise<Object>} { data: Array, pagination: Object }
+   */
+  static async findByFarm(farmId, options = {}) {
+    try {
+      // Validar farmId
+      if (!farmId) {
+        throw new AppError('Farm ID is required', 400, 'MISSING_FARM_ID');
       }
-      
-      // Check business rules for deletion
-      await this.checkBusinessRulesForDelete(id);
-      
-      const result = await EquipmentCatalogClient.delete(id);
-      
-      // Apply any post-deletion business logic here if needed
+
+      const EquipmentClient = require('../clients/equipmentClient');
+      const result = await EquipmentClient.findByFarm(farmId, options);
+
       return result;
     } catch (error) {
-      console.error('Error in EquipmentService.delete:', error);
+      console.error('Error in EquipmentService.findByFarm:', error);
       throw error;
     }
-  }
-
-  static async findByTypeModelTrim(type, make, model, trim = null, year = null) {
-    try {
-      // Validate required parameters
-      if (!type || !make || !model) {
-        throw new AppError('Type, make, and model are required', 400, 'MISSING_REQUIRED_PARAMS');
-      }
-
-      const equipment = await EquipmentCatalogClient.findByTypeModelTrim(type, make, model, trim, year);
-      
-      // Apply any business logic transformations here if needed
-      return equipment;
-    } catch (error) {
-      console.error('Error in EquipmentService.findByTypeModelTrim:', error);
-      throw error;
-    }
-  }
-
-  // Private validation methods
-  static validateFindAllOptions(options) {
-    const {
-      page = 1,
-      limit = 20,
-      search = '',
-      typeId = null,
-      makeId = null,
-      modelId = null
-    } = options;
-
-    // Validate page and limit
-    const validatedPage = Math.max(1, parseInt(page) || 1);
-    const validatedLimit = Math.min(100, Math.max(1, parseInt(limit) || 20)); // Max 100 items per page
-
-    // Validate search (sanitize)
-    const validatedSearch = typeof search === 'string' ? search.trim().substring(0, 100) : '';
-
-    // Validate filter IDs
-    const validatedTypeId = typeId && !isNaN(typeId) ? parseInt(typeId) : null;
-    const validatedMakeId = makeId && !isNaN(makeId) ? parseInt(makeId) : null;
-    const validatedModelId = modelId && !isNaN(modelId) ? parseInt(modelId) : null;
-
-    return {
-      page: validatedPage,
-      limit: validatedLimit,
-      search: validatedSearch,
-      typeId: validatedTypeId,
-      makeId: validatedMakeId,
-      modelId: validatedModelId
-    };
-  }
-
-  static validateCreateData(equipmentData) {
-    if (!equipmentData) {
-      throw new AppError('Equipment data is required', 400, 'MISSING_DATA');
-    }
-
-    const { type, make, model } = equipmentData;
-
-    if (!type) {
-      throw new AppError('Equipment type is required', 400, 'MISSING_TYPE');
-    }
-
-    if (!make) {
-      throw new AppError('Equipment make is required', 400, 'MISSING_MAKE');
-    }
-
-    if (!model) {
-      throw new AppError('Equipment model is required', 400, 'MISSING_MODEL');
-    }
-
-    // Validate year if provided
-    if (equipmentData.year !== undefined) {
-      const year = parseInt(equipmentData.year);
-      const currentYear = new Date().getFullYear();
-      if (isNaN(year) || year < 1900 || year > currentYear + 2) {
-        throw new AppError('Year must be between 1900 and ' + (currentYear + 2), 400, 'INVALID_YEAR');
-      }
-    }
-  }
-
-  static validateUpdateData(updateData) {
-    if (!updateData || Object.keys(updateData).length === 0) {
-      throw new AppError('Update data is required', 400, 'MISSING_DATA');
-    }
-
-    const { type, make, model } = updateData;
-
-    if (type !== undefined && !type) {
-      throw new AppError('Equipment type cannot be empty', 400, 'INVALID_TYPE');
-    }
-
-    if (make !== undefined && !make) {
-      throw new AppError('Equipment make cannot be empty', 400, 'INVALID_MAKE');
-    }
-
-    if (model !== undefined && !model) {
-      throw new AppError('Equipment model cannot be empty', 400, 'INVALID_MODEL');
-    }
-
-    // Validate year if provided
-    if (updateData.year !== undefined) {
-      const year = parseInt(updateData.year);
-      const currentYear = new Date().getFullYear();
-      if (isNaN(year) || year < 1900 || year > currentYear + 2) {
-        throw new AppError('Year must be between 1900 and ' + (currentYear + 2), 400, 'INVALID_YEAR');
-      }
-    }
-  }
-
-  static async checkBusinessRulesForCreate(equipmentData) {
-    const { type, make, model } = equipmentData;
-
-    // Validate that referenced entities exist
-    try {
-      await EquipmentTypeService.findById(type);
-    } catch (error) {
-      throw new AppError('Referenced equipment type not found', 400, 'INVALID_TYPE_REFERENCE');
-    }
-
-    try {
-      await EquipmentMakeService.findById(make);
-    } catch (error) {
-      throw new AppError('Referenced equipment make not found', 400, 'INVALID_MAKE_REFERENCE');
-    }
-
-    // Additional validation could include checking if model belongs to make, etc.
-  }
-
-  static async checkBusinessRulesForUpdate(id, updateData) {
-    // Check if equipment exists first
-    await EquipmentCatalogClient.findById(id);
-
-    const { type, make, model } = updateData;
-
-    // Validate that referenced entities exist if being updated
-    if (type) {
-      try {
-        await EquipmentTypeService.findById(type);
-      } catch (error) {
-        throw new AppError('Referenced equipment type not found', 400, 'INVALID_TYPE_REFERENCE');
-      }
-    }
-
-    if (make) {
-      try {
-        await EquipmentMakeService.findById(make);
-      } catch (error) {
-        throw new AppError('Referenced equipment make not found', 400, 'INVALID_MAKE_REFERENCE');
-      }
-    }
-  }
-
-  static async checkBusinessRulesForDelete(id) {
-    // Check if equipment exists first
-    await EquipmentCatalogClient.findById(id);
-    
-    // Add business rules for deletion here if needed
-    // For example: check if equipment is currently in use, has maintenance records, etc.
   }
 }
 

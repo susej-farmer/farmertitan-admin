@@ -46,6 +46,25 @@ export const farmsApi = {
   async getStatistics() {
     const response = await api.get('/farms/stats/overview')
     return response.data
+  },
+
+  // Bulk import equipment from CSV
+  async bulkImportEquipment(farmId, csvFile) {
+    const formData = new FormData()
+    formData.append('csvFile', csvFile)
+    formData.append('farm_id', farmId)
+
+    const response = await api.post('/import/equipment', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    return response.data
+  },
+
+  // Get farm equipment with pagination, search and filters
+  async getFarmEquipment(farmId, params = {}) {
+    return apiUtils.getPaginated(`/farms/${farmId}/equipment`, params)
   }
 }
 

@@ -22,7 +22,7 @@ class DatabaseConnection {
 
       // Test the connection
       const { data, error } = await this.supabase
-        .from('equipment_types')
+        .from('_equipment_type')
         .select('count', { count: 'exact', head: true });
 
       if (error) {
@@ -82,7 +82,7 @@ class DatabaseConnection {
   async healthCheck() {
     try {
       const { data, error } = await this.supabase
-        .from('equipment_types')
+        .from('_equipment_type')
         .select('count', { count: 'exact', head: true });
 
       if (error) {

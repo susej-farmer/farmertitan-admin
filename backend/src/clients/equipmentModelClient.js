@@ -134,19 +134,20 @@ class EquipmentModelClient {
         let created_by_name = null;
         let created_in_name = null;
         
-        // Get user email if created_by exists
+        // Get user info if created_by exists
         if (item.created_by) {
           try {
-            console.log('DEBUG: Fetching user for created_by:', item.created_by);
-            const { data: userData, error: userError } = await supabase
-              .from('user_profiles')
-              .select('email')
-              .eq('id', item.created_by)
-              .single();
-            console.log('DEBUG: User query result:', { userData, userError });
-            created_by_name = userData?.email || item.created_by; // Fallback to UUID if no email
+            const { data: userResult } = await supabase
+              .rpc('get_user_profile', { p_user_id: item.created_by });
+
+            if (userResult?.success && userResult?.data) {
+              created_by_name = userResult.data.display_name || userResult.data.email || item.created_by;
+            } else {
+              created_by_name = item.created_by; // Fallback to UUID
+            }
           } catch (err) {
-            console.warn('Failed to fetch user email for id:', item.created_by, err);
+            console.warn('Failed to fetch user info for id:', item.created_by, err);
+            created_by_name = item.created_by; // Fallback to UUID
           }
         }
         
@@ -340,10 +341,32 @@ class EquipmentModelClient {
       console.log('DEBUG: checkNameUniqueForMake found existing records:', data.length);
       const isUnique = data.length === 0;
       console.log('DEBUG: checkNameUniqueForMake result - isUnique:', isUnique);
-      
+
       return isUnique;
     } catch (error) {
       console.error('Failed to check equipment model name uniqueness for make', error, { name, makeId, excludeId });
+      throw error;
+    }
+  }
+
+  static async findByNameAndMake(name, makeId) {
+    try {
+      const supabase = dbConnection.getClient();
+
+      const { data, error } = await supabase
+        .from('_equipment_model')
+        .select('*')
+        .eq('name', name)
+        .eq('make', makeId)
+        .maybeSingle(); // Use maybeSingle() instead of single() to handle not found gracefully
+
+      if (error) {
+        throw error;
+      }
+
+      return data; // Returns null if not found
+    } catch (error) {
+      console.error('Failed to find equipment model by name and make', error, { name, makeId });
       throw error;
     }
   }

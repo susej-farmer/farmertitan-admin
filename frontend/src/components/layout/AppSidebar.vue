@@ -27,7 +27,40 @@
         </svg>
         <span v-if="!isCollapsed">Dashboard</span>
       </router-link>
-      
+
+      <!-- Farm Management Section -->
+      <div class="pt-4">
+        <h3 v-if="!isCollapsed" class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          Farm Management
+        </h3>
+        <div class="mt-2 space-y-1">
+          <!-- Farms -->
+          <router-link
+            to="/farms"
+            :class="['sidebar-nav-item', isCollapsed ? 'justify-center' : '', ['Farms', 'FarmDetails'].includes($route.name) ? 'sidebar-nav-item-active' : 'sidebar-nav-item-inactive']"
+            :title="isCollapsed ? 'Farms' : ''"
+          >
+            <svg :class="[isCollapsed ? 'w-6 h-6' : 'w-5 h-5 mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" />
+            </svg>
+            <span v-if="!isCollapsed">Farms</span>
+          </router-link>
+
+          <!-- QR Codes -->
+          <router-link
+            to="/qr-codes"
+            :class="['sidebar-nav-item', isCollapsed ? 'justify-center' : '', $route.name === 'QRCodes' ? 'sidebar-nav-item-active' : 'sidebar-nav-item-inactive']"
+            :title="isCollapsed ? 'QR Codes' : ''"
+          >
+            <svg :class="[isCollapsed ? 'w-6 h-6' : 'w-5 h-5 mr-3']" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 13a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zM12 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1V4zM9 16a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1zM12 16a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1zM16 12a1 1 0 100 2 1 1 0 000-2zM15 16a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1z" clip-rule="evenodd" />
+            </svg>
+            <span v-if="!isCollapsed" class="flex-1">QR Codes</span>
+            <span v-if="!isCollapsed" class="ml-auto px-1.5 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">WIP</span>
+          </router-link>
+        </div>
+      </div>
+
       <!-- Catalogs Section -->
       <div class="pt-4">
         <h3 v-if="!isCollapsed" class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -124,39 +157,8 @@
             <svg :class="[isCollapsed ? 'w-6 h-6' : 'w-5 h-5 mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5a2.25 2.25 0 0 0 2.25-2.25m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008ZM15 15h.008v.008H15V15Zm0 2.25h.008v.008H15v-.008ZM14.25 15h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008ZM16.5 15h.008v.008H16.5V15Zm0 2.25h.008v.008H16.5v-.008Z" />
             </svg>
-            <span v-if="!isCollapsed">Maintenance</span>
-          </router-link>
-        </div>
-      </div>
-      
-      <!-- Farm Management Section -->
-      <div class="pt-4">
-        <h3 v-if="!isCollapsed" class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Farm Management
-        </h3>
-        <div class="mt-2 space-y-1">
-          <!-- Farms -->
-          <router-link
-            to="/farms"
-            :class="['sidebar-nav-item', isCollapsed ? 'justify-center' : '', ['Farms', 'FarmDetails'].includes($route.name) ? 'sidebar-nav-item-active' : 'sidebar-nav-item-inactive']"
-            :title="isCollapsed ? 'Farms' : ''"
-          >
-            <svg :class="[isCollapsed ? 'w-6 h-6' : 'w-5 h-5 mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" />
-            </svg>
-            <span v-if="!isCollapsed">Farms</span>
-          </router-link>
-          
-          <!-- QR Codes -->
-          <router-link
-            to="/qr-codes"
-            :class="['sidebar-nav-item', isCollapsed ? 'justify-center' : '', $route.name === 'QRCodes' ? 'sidebar-nav-item-active' : 'sidebar-nav-item-inactive']"
-            :title="isCollapsed ? 'QR Codes' : ''"
-          >
-            <svg :class="[isCollapsed ? 'w-6 h-6' : 'w-5 h-5 mr-3']" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 13a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zM12 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1V4zM9 16a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1zM12 16a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1zM16 12a1 1 0 100 2 1 1 0 000-2zM15 16a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1z" clip-rule="evenodd" />
-            </svg>
-            <span v-if="!isCollapsed">QR Codes</span>
+            <span v-if="!isCollapsed" class="flex-1">Maintenance</span>
+            <span v-if="!isCollapsed" class="ml-auto px-1.5 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">WIP</span>
           </router-link>
         </div>
       </div>

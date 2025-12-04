@@ -78,7 +78,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue'
+import { ref } from 'vue'
 import { qrService } from '@/services/qrService'
 
 const props = defineProps({

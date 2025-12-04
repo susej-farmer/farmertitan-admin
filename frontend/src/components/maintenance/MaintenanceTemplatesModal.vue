@@ -238,7 +238,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineProps, defineEmits } from 'vue'
+import { ref, onMounted } from 'vue'
 import { maintenanceApi } from '@/services/maintenanceApi'
 
 const props = defineProps({

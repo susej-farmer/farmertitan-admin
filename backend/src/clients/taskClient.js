@@ -130,10 +130,10 @@ class TaskClient {
   static async findTemplates(options = {}) {
     const client = new TaskClient();
     const { page = 1, limit = 20, search = '', equipmentType = null } = options;
-    
+
     const from = (page - 1) * limit;
     const to = from + limit - 1;
-    
+
     try {
       let query = client.supabase
         .from('task')
@@ -144,24 +144,24 @@ class TaskClient {
           _consumable_type(name)
         `, { count: 'exact' })
         .eq('type', 'template:maintenance');
-      
+
       if (search) {
         query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
       }
-      
+
       if (equipmentType) {
         query = query.eq('_equipment_type', equipmentType);
       }
-      
+
       query = query.range(from, to).order('created_at', { ascending: false });
-      
+
       const { data, error, count } = await query;
-      
+
       if (error) {
         console.error('Task templates query error:', error);
         throw error;
       }
-      
+
       return {
         data: data || [],
         pagination: {
@@ -175,6 +175,63 @@ class TaskClient {
       };
     } catch (error) {
       console.error('Error in TaskClient.findTemplates:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Lista las tareas por defecto para un equipo específico
+   * @param {string} equipmentId - UUID del _equipment
+   * @param {string} equipmentTypeId - UUID del _equipment_type
+   * @returns {Promise<Array>} Array de tareas por defecto
+   */
+  static async listDefaultTasks(equipmentId, equipmentTypeId) {
+    const client = new TaskClient();
+
+    try {
+      const { data, error } = await client.supabase
+        .rpc('list_default_tasks', {
+          p_equipment_id: equipmentId,
+          p_equipment_type_id: equipmentTypeId
+        });
+
+      if (error) {
+        console.error('List default tasks error:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in TaskClient.listDefaultTasks:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find tasks by equipment ID and type
+   * @param {string} equipmentId - Equipment UUID
+   * @param {string} type - Task type (e.g., 'template:maintenance')
+   * @returns {Promise<Array>} Array of tasks
+   */
+  static async findByEquipmentAndType(equipmentId, type = 'template:maintenance') {
+    const client = new TaskClient();
+
+    try {
+      const { data, error } = await client.supabase
+        .from('task')
+        .select('id, name, description, status, priority, metadata')
+        .eq('equipment', equipmentId)
+        .eq('type', type)
+        .order('name', { ascending: true });
+
+      if (error) {
+        console.error('Error finding tasks by equipment and type:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in TaskClient.findByEquipmentAndType:', error);
       throw error;
     }
   }

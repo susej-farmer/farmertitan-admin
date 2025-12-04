@@ -1,0 +1,302 @@
+<template>
+  <div class="space-y-6">
+    <!-- Header with Search and Filters -->
+    <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div class="flex-1 max-w-md">
+        <div class="relative">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search by name or serial number..."
+            @input="debouncedSearch"
+            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          />
+          <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <!-- Status Filter -->
+        <select
+          v-model="filters.status"
+          @change="loadEquipment"
+          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+        >
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="maintenance">Maintenance</option>
+        </select>
+
+        <!-- Equipment Type Filter -->
+        <select
+          v-model="filters.equipment_type"
+          @change="loadEquipment"
+          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+        >
+          <option value="">All Types</option>
+          <!-- Types will be populated from API or props -->
+        </select>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="text-center py-12">
+      <div class="loading-spinner w-8 h-8 mx-auto mb-4"></div>
+      <p class="text-gray-600">Loading equipment...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="card">
+      <div class="card-body text-center py-8">
+        <div class="text-red-500 mb-4">
+          <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Error Loading Equipment</h3>
+        <p class="text-gray-600 mb-4">{{ error }}</p>
+        <button @click="loadEquipment" class="btn btn-primary">
+          Try Again
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else-if="!equipment.length" class="card">
+      <div class="card-body text-center py-12">
+        <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m4.5 4.5V19.5a2.25 2.25 0 0 0 2.25 2.25h2.25a2.25 2.25 0 0 0 2.25-2.25v-.75m-6 0a2.25 2.25 0 0 1-2.25-2.25v-.75m6 0V15a2.25 2.25 0 0 1 2.25-2.25h.75m-6 0a2.25 2.25 0 0 0-2.25 2.25v.75m6 0a2.25 2.25 0 0 0 2.25-2.25V15" />
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No Equipment Found</h3>
+        <p class="text-gray-600">
+          {{ searchQuery ? 'Try adjusting your search or filters' : 'This farm has no equipment yet' }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Equipment Table -->
+    <div v-else class="card">
+      <div class="overflow-x-auto">
+        <table class="table min-w-full">
+          <thead class="table-header">
+            <tr>
+              <th class="table-header-cell text-left">Name</th>
+              <th class="table-header-cell text-left">Type</th>
+              <th class="table-header-cell text-left">Make / Model</th>
+              <th class="table-header-cell text-left">Serial Number</th>
+              <th class="table-header-cell text-left">Status</th>
+              <th class="table-header-cell text-left">Tasks</th>
+              <th class="table-header-cell text-left">Created</th>
+            </tr>
+          </thead>
+          <tbody class="table-body">
+            <tr v-for="item in equipment" :key="item.id" class="table-row hover:bg-gray-50">
+              <td class="table-cell">
+                <div>
+                  <div class="font-medium text-gray-900">{{ item.name }}</div>
+                  <div class="text-xs text-gray-500 font-mono">{{ item.id }}</div>
+                </div>
+              </td>
+              <td class="table-cell">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {{ item._equipment?._equipment_type?.name || '-' }}
+                </span>
+              </td>
+              <td class="table-cell text-sm text-gray-600">
+                <div>{{ item._equipment?._equipment_make?.name || '-' }}</div>
+                <div v-if="item._equipment?._equipment_model?.name" class="text-xs text-gray-500">
+                  {{ item._equipment._equipment_model.name }}
+                </div>
+              </td>
+              <td class="table-cell font-mono text-sm text-gray-900">
+                {{ item.serial_number || '-' }}
+              </td>
+              <td class="table-cell">
+                <span
+                  :class="[
+                    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                    getStatusColor(item.status)
+                  ]"
+                >
+                  {{ formatStatus(item.status) }}
+                </span>
+              </td>
+              <td class="table-cell">
+                <div class="flex items-center text-sm text-gray-700">
+                  <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  {{ item.maintenance_tasks?.count || 0 }}
+                </div>
+              </td>
+              <td class="table-cell text-sm text-gray-600">
+                {{ formatDate(item.created_at) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="pagination.total > pagination.limit" class="px-6 py-4 border-t border-gray-200">
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-gray-700">
+            Showing {{ ((pagination.page - 1) * pagination.limit) + 1 }} to
+            {{ Math.min(pagination.page * pagination.limit, pagination.total) }} of
+            {{ pagination.total }} results
+          </div>
+
+          <div class="flex gap-2">
+            <button
+              @click="changePage(pagination.page - 1)"
+              :disabled="pagination.page === 1"
+              class="btn btn-sm btn-secondary"
+              :class="{ 'opacity-50 cursor-not-allowed': pagination.page === 1 }"
+            >
+              Previous
+            </button>
+            <button
+              @click="changePage(pagination.page + 1)"
+              :disabled="pagination.page >= pagination.pages"
+              class="btn btn-sm btn-secondary"
+              :class="{ 'opacity-50 cursor-not-allowed': pagination.page >= pagination.pages }"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, watch } from 'vue'
+import { farmsApi } from '@/services/farmsApi'
+import { useNotifications } from '@/composables/useNotifications'
+
+const props = defineProps({
+  farm: {
+    type: Object,
+    required: true
+  }
+})
+
+const { error: showError } = useNotifications()
+
+// State
+const equipment = ref([])
+const loading = ref(false)
+const error = ref('')
+const searchQuery = ref('')
+const filters = ref({
+  status: '',
+  equipment_type: ''
+})
+const pagination = ref({
+  page: 1,
+  limit: 10,
+  total: 0,
+  pages: 0
+})
+
+// Debounce timer
+let searchTimeout = null
+
+// Methods
+const loadEquipment = async () => {
+  if (!props.farm?.id) return
+
+  loading.value = true
+  error.value = ''
+
+  try {
+    const params = {
+      page: pagination.value.page,
+      limit: pagination.value.limit
+    }
+
+    // Add search query
+    if (searchQuery.value) {
+      params.search = searchQuery.value
+    }
+
+    // Add filters
+    if (filters.value.status) {
+      params.status = filters.value.status
+    }
+    if (filters.value.equipment_type) {
+      params.equipment_type = filters.value.equipment_type
+    }
+
+    const response = await farmsApi.getFarmEquipment(props.farm.id, params)
+
+    if (response.success) {
+      equipment.value = response.data
+      pagination.value = {
+        page: response.page,
+        limit: response.limit,
+        total: response.total,
+        pages: response.pages
+      }
+    } else {
+      throw new Error(response.message || 'Failed to load equipment')
+    }
+  } catch (err) {
+    console.error('Failed to load equipment:', err)
+    error.value = err.userMessage || err.message || 'Failed to load equipment'
+    showError('Error', error.value)
+  } finally {
+    loading.value = false
+  }
+}
+
+const debouncedSearch = () => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    pagination.value.page = 1 // Reset to first page on search
+    loadEquipment()
+  }, 500)
+}
+
+const changePage = (page) => {
+  if (page < 1 || page > pagination.value.pages) return
+  pagination.value.page = page
+  loadEquipment()
+}
+
+const getStatusColor = (status) => {
+  const colors = {
+    active: 'bg-green-100 text-green-800',
+    inactive: 'bg-gray-100 text-gray-800',
+    maintenance: 'bg-yellow-100 text-yellow-800',
+    retired: 'bg-red-100 text-red-800'
+  }
+  return colors[status] || 'bg-gray-100 text-gray-800'
+}
+
+const formatStatus = (status) => {
+  if (!status) return 'Unknown'
+  return status.charAt(0).toUpperCase() + status.slice(1)
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  return new Date(dateString).toLocaleDateString()
+}
+
+// Watch for farm changes
+watch(() => props.farm?.id, (newId) => {
+  if (newId) {
+    loadEquipment()
+  }
+})
+
+// Lifecycle
+onMounted(() => {
+  loadEquipment()
+})
+</script>

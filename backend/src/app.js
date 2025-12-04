@@ -49,6 +49,7 @@ app.use('/api/maintenance-system', require('./routes/maintenanceSystem'));
 app.use('/api/farms', require('./routes/farms'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/qr-codes', require('./routes/qrCodes'));
+app.use('/api/import', require('./routes/import'));
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
