@@ -63,6 +63,7 @@
         <table class="table min-w-full">
           <thead class="table-header">
             <tr>
+              <th class="table-header-cell">ID</th>
               <th class="table-header-cell">Name</th>
               <th class="table-header-cell">Description</th>
               <th class="table-header-cell">Created By</th>
@@ -73,6 +74,7 @@
           </thead>
           <tbody class="table-body">
             <tr v-for="consumableType in consumableTypes" :key="consumableType.id" class="table-row">
+              <td class="table-cell">{{ consumableType.id }}</td>
               <td class="table-cell font-medium">{{ consumableType.name }}</td>
               <td class="table-cell">{{ consumableType.description || '-' }}</td>
               <td class="table-cell">{{ consumableType.created_by_name || '-' }}</td>
@@ -102,7 +104,7 @@
               </td>
             </tr>
             <tr v-if="consumableTypes.length === 0" class="table-row">
-              <td colspan="6" class="table-cell text-center text-gray-500 py-8">
+              <td colspan="7" class="table-cell text-center text-gray-500 py-8">
                 No consumable types found
               </td>
             </tr>
@@ -111,15 +113,31 @@
       </div>
       
       <!-- Pagination -->
-      <div v-if="pagination.totalPages > 1" class="card-footer">
+      <div v-if="pagination.total > 0" class="card-footer">
         <div class="flex items-center justify-between">
-          <p class="text-sm text-gray-700">
-            Showing {{ (pagination.page - 1) * pagination.limit + 1 }} to 
-            {{ Math.min(pagination.page * pagination.limit, pagination.total) }} of 
-            {{ pagination.total }} results
-          </p>
+          <div class="flex items-center gap-4">
+            <div class="text-sm text-gray-700">
+              Showing {{ (pagination.page - 1) * pagination.limit + 1 }} to
+              {{ Math.min(pagination.page * pagination.limit, pagination.total) }} of
+              {{ pagination.total }} results
+            </div>
+            <div class="flex items-center gap-2">
+              <label for="itemsPerPage" class="text-sm text-gray-700">Items per page:</label>
+              <select
+                id="itemsPerPage"
+                v-model="pagination.limit"
+                @change="changePageSize"
+                class="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+              >
+                <option :value="10">10</option>
+                <option :value="25">25</option>
+                <option :value="50">50</option>
+                <option :value="100">100</option>
+              </select>
+            </div>
+          </div>
           <div class="flex items-center space-x-2">
-            <button 
+            <button
               @click="goToPage(pagination.page - 1)"
               :disabled="!pagination.hasPrev"
               class="btn btn-sm btn-secondary"
@@ -130,7 +148,7 @@
             <span class="text-sm text-gray-700">
               Page {{ pagination.page }} of {{ pagination.totalPages }}
             </span>
-            <button 
+            <button
               @click="goToPage(pagination.page + 1)"
               :disabled="!pagination.hasNext"
               class="btn btn-sm btn-secondary"
@@ -228,7 +246,7 @@ export default {
     
     const pagination = reactive({
       page: 1,
-      limit: 20,
+      limit: 25,
       total: 0,
       totalPages: 0,
       hasNext: false,
@@ -245,14 +263,16 @@ export default {
     const loadConsumableTypes = async () => {
       loading.value = true
       error.value = ''
-      
+
       try {
         const params = {
           page: pagination.page,
           limit: pagination.limit,
-          search: searchQuery.value
+          search: searchQuery.value,
+          sort: 'name',
+          order: 'asc'
         }
-        
+
         const response = await catalogsApi.getConsumableTypes(params)
         
         if (response.success) {
@@ -272,6 +292,11 @@ export default {
     
     const goToPage = (page) => {
       pagination.page = page
+      loadConsumableTypes()
+    }
+
+    const changePageSize = () => {
+      pagination.page = 1 // Reset to first page when changing page size
       loadConsumableTypes()
     }
     
@@ -372,6 +397,7 @@ export default {
       loadConsumableTypes,
       handleSearch,
       goToPage,
+      changePageSize,
       editConsumableType,
       deleteConsumableType,
       saveConsumableType,

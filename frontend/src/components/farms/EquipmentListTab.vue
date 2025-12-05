@@ -37,7 +37,33 @@
           class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
         >
           <option value="">All Types</option>
-          <!-- Types will be populated from API or props -->
+          <option v-for="type in equipmentTypes" :key="type.id" :value="type.id">
+            {{ type.name }}
+          </option>
+        </select>
+
+        <!-- Equipment Make Filter -->
+        <select
+          v-model="filters.equipment_make"
+          @change="loadEquipment"
+          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+        >
+          <option value="">All Makes</option>
+          <option v-for="make in equipmentMakes" :key="make.id" :value="make.id">
+            {{ make.name }}
+          </option>
+        </select>
+
+        <!-- Equipment Model Filter -->
+        <select
+          v-model="filters.equipment_model"
+          @change="loadEquipment"
+          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+        >
+          <option value="">All Models</option>
+          <option v-for="model in equipmentModels" :key="model.id" :value="model.id">
+            {{ model.name }}
+          </option>
         </select>
       </div>
     </div>
@@ -141,12 +167,28 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="pagination.total > pagination.limit" class="px-6 py-4 border-t border-gray-200">
+      <div v-if="pagination.total > 0" class="px-6 py-4 border-t border-gray-200">
         <div class="flex items-center justify-between">
-          <div class="text-sm text-gray-700">
-            Showing {{ ((pagination.page - 1) * pagination.limit) + 1 }} to
-            {{ Math.min(pagination.page * pagination.limit, pagination.total) }} of
-            {{ pagination.total }} results
+          <div class="flex items-center gap-4">
+            <div class="text-sm text-gray-700">
+              Showing {{ ((pagination.page - 1) * pagination.limit) + 1 }} to
+              {{ Math.min(pagination.page * pagination.limit, pagination.total) }} of
+              {{ pagination.total }} results
+            </div>
+            <div class="flex items-center gap-2">
+              <label for="itemsPerPage" class="text-sm text-gray-700">Items per page:</label>
+              <select
+                id="itemsPerPage"
+                v-model="pagination.limit"
+                @change="changePageSize"
+                class="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+              >
+                <option :value="10">10</option>
+                <option :value="25">25</option>
+                <option :value="50">50</option>
+                <option :value="100">100</option>
+              </select>
+            </div>
           </div>
 
           <div class="flex gap-2">
@@ -158,6 +200,9 @@
             >
               Previous
             </button>
+            <span class="px-3 py-1 text-sm text-gray-700">
+              Page {{ pagination.page }} of {{ pagination.pages }}
+            </span>
             <button
               @click="changePage(pagination.page + 1)"
               :disabled="pagination.page >= pagination.pages"
@@ -176,6 +221,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { farmsApi } from '@/services/farmsApi'
+import { catalogsApi } from '@/services/catalogsApi'
 import { useNotifications } from '@/composables/useNotifications'
 
 const props = defineProps({
@@ -194,14 +240,19 @@ const error = ref('')
 const searchQuery = ref('')
 const filters = ref({
   status: '',
-  equipment_type: ''
+  equipment_type: '',
+  equipment_make: '',
+  equipment_model: ''
 })
 const pagination = ref({
   page: 1,
-  limit: 10,
+  limit: 25,
   total: 0,
   pages: 0
 })
+const equipmentTypes = ref([])
+const equipmentMakes = ref([])
+const equipmentModels = ref([])
 
 // Debounce timer
 let searchTimeout = null
@@ -230,6 +281,12 @@ const loadEquipment = async () => {
     }
     if (filters.value.equipment_type) {
       params.equipment_type = filters.value.equipment_type
+    }
+    if (filters.value.equipment_make) {
+      params.equipment_make = filters.value.equipment_make
+    }
+    if (filters.value.equipment_model) {
+      params.equipment_model = filters.value.equipment_model
     }
 
     const response = await farmsApi.getFarmEquipment(props.farm.id, params)
@@ -268,6 +325,11 @@ const changePage = (page) => {
   loadEquipment()
 }
 
+const changePageSize = () => {
+  pagination.value.page = 1 // Reset to first page when changing page size
+  loadEquipment()
+}
+
 const getStatusColor = (status) => {
   const colors = {
     active: 'bg-green-100 text-green-800',
@@ -288,6 +350,30 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString()
 }
 
+const loadFilterOptions = async () => {
+  try {
+    // Load equipment types
+    const typesResponse = await catalogsApi.getEquipmentTypes({ limit: 1000 })
+    if (typesResponse.success) {
+      equipmentTypes.value = typesResponse.data
+    }
+
+    // Load equipment makes
+    const makesResponse = await catalogsApi.getEquipmentMakes({ limit: 1000 })
+    if (makesResponse.success) {
+      equipmentMakes.value = makesResponse.data
+    }
+
+    // Load equipment models
+    const modelsResponse = await catalogsApi.getEquipmentModels({ limit: 1000 })
+    if (modelsResponse.success) {
+      equipmentModels.value = modelsResponse.data
+    }
+  } catch (err) {
+    console.error('Failed to load filter options:', err)
+  }
+}
+
 // Watch for farm changes
 watch(() => props.farm?.id, (newId) => {
   if (newId) {
@@ -297,6 +383,7 @@ watch(() => props.farm?.id, (newId) => {
 
 // Lifecycle
 onMounted(() => {
+  loadFilterOptions()
   loadEquipment()
 })
 </script>
