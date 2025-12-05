@@ -5,12 +5,11 @@
       <div class="card-body">
         <div class="flex items-center space-x-4">
           <div class="flex-1">
-            <input
+            <SearchInput
               v-model="searchQuery"
-              type="text"
               placeholder="Search equipment models..."
-              class="form-input"
-              @keyup.enter="handleSearch"
+              @search="handleSearch"
+              @clear="handleSearch"
             />
           </div>
           <div class="w-64">
@@ -21,15 +20,6 @@
               </option>
             </select>
           </div>
-          <button 
-            @click="handleSearch"
-            class="btn btn-secondary"
-            title="Search"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-            </svg>
-          </button>
           <button 
             @click="showCreateModal = true"
             class="btn btn-primary"
@@ -273,11 +263,13 @@ import { useNotifications } from '@/composables/useNotifications'
 import { useModals } from '@/composables/useModals'
 import { formatDate } from '@/utils/formatters'
 import PaginationBar from '@/components/shared/PaginationBar.vue'
+import SearchInput from '@/components/shared/SearchInput.vue'
 
 export default {
   name: 'EquipmentModels',
   components: {
-    PaginationBar
+    PaginationBar,
+    SearchInput
   },
   setup() {
     const { success, error: showError } = useNotifications()
