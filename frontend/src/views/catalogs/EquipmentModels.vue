@@ -306,7 +306,7 @@ export default {
           search: searchQuery.value,
           sort: sort.value,
           order: order.value,
-          makeId: selectedMake.value || null
+          make: selectedMake.value || null
         }
         
         const response = await catalogsApi.getEquipmentModels(params)

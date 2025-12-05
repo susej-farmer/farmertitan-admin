@@ -374,9 +374,7 @@ export default {
           make: filters.make || undefined,
           model: filters.model || undefined
         }
-        
-        console.log('DEBUG: loadEquipmentTrims - params:', params)
-        
+
         const response = await catalogsApi.getEquipmentTrims(params)
         
         if (response.success) {
@@ -419,13 +417,11 @@ export default {
     }
     
     const onMakeChange = async () => {
-      console.log('DEBUG: onMakeChange - selected make:', filters.make)
       filters.model = ''
       pagination.page = 1
       if (filters.make) {
         const modelsForMake = await loadModelsForMake(filters.make)
         models.value = modelsForMake
-        console.log('DEBUG: loaded models for make:', modelsForMake)
       } else {
         models.value = []
       }
