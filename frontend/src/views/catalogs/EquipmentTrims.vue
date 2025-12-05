@@ -154,36 +154,12 @@
       </div>
       
       <!-- Pagination -->
-      <div v-if="pagination.totalPages > 1" class="card-footer">
-        <div class="flex items-center justify-between">
-          <p class="text-sm text-gray-700">
-            Showing {{ (pagination.page - 1) * pagination.limit + 1 }} to 
-            {{ Math.min(pagination.page * pagination.limit, pagination.total) }} of 
-            {{ pagination.total }} results
-          </p>
-          <div class="flex items-center space-x-2">
-            <button 
-              @click="goToPage(pagination.page - 1)"
-              :disabled="!pagination.hasPrev"
-              class="btn btn-sm btn-secondary"
-              :class="{ 'opacity-50 cursor-not-allowed': !pagination.hasPrev }"
-            >
-              Previous
-            </button>
-            <span class="text-sm text-gray-700">
-              Page {{ pagination.page }} of {{ pagination.totalPages }}
-            </span>
-            <button 
-              @click="goToPage(pagination.page + 1)"
-              :disabled="!pagination.hasNext"
-              class="btn btn-sm btn-secondary"
-              :class="{ 'opacity-50 cursor-not-allowed': !pagination.hasNext }"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
+      <PaginationBar
+        v-model="paginationModel"
+        :total-items="pagination.total"
+        :total-pages="pagination.totalPages"
+        @change="handlePaginationChange"
+      />
     </div>
 
     <!-- Create/Edit Modal -->
@@ -271,10 +247,14 @@ import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { catalogsApi } from '@/services/catalogsApi'
 import { useNotifications } from '@/composables/useNotifications'
 import { useModals } from '@/composables/useModals'
+import PaginationBar from '@/components/shared/PaginationBar.vue'
 import { formatDate } from '@/utils/formatters'
 
 export default {
   name: 'EquipmentTrims',
+  components: {
+    PaginationBar
+  },
   setup() {
     const { success, error: showError } = useNotifications()
     const { confirmDelete } = useModals()
@@ -297,21 +277,32 @@ export default {
     
     const pagination = reactive({
       page: 1,
-      limit: 20,
+      limit: 25,
       total: 0,
       totalPages: 0,
       hasNext: false,
       hasPrev: false
     })
-    
+
     const form = reactive({
       id: null,
       name: '',
       make: '',
       model: ''
     })
-    
+
     // Computed
+    const paginationModel = computed({
+      get: () => ({
+        page: pagination.page,
+        limit: pagination.limit
+      }),
+      set: (value) => {
+        pagination.page = value.page
+        pagination.limit = value.limit
+      }
+    })
+
     const filteredModels = computed(() => {
       // Return the models directly since they are already filtered for the selected make
       return models.value
@@ -407,8 +398,9 @@ export default {
       }
     }
     
-    const goToPage = (page) => {
-      pagination.page = page
+    const handlePaginationChange = (newPagination) => {
+      pagination.page = newPagination.page
+      pagination.limit = newPagination.limit
       loadEquipmentTrims()
     }
     
@@ -513,6 +505,7 @@ export default {
       searchQuery,
       filters,
       pagination,
+      paginationModel,
       showCreateModal,
       showEditModal,
       saving,
@@ -524,7 +517,7 @@ export default {
       onMakeChange,
       onModelChange,
       onFormMakeChange,
-      goToPage,
+      handlePaginationChange,
       editTrim,
       deleteTrim,
       saveTrim,

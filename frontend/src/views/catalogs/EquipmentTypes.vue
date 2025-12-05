@@ -111,36 +111,12 @@
       </div>
       
       <!-- Pagination -->
-      <div v-if="pagination.totalPages > 1" class="card-footer">
-        <div class="flex items-center justify-between">
-          <p class="text-sm text-gray-700">
-            Showing {{ (pagination.page - 1) * pagination.limit + 1 }} to 
-            {{ Math.min(pagination.page * pagination.limit, pagination.total) }} of 
-            {{ pagination.total }} results
-          </p>
-          <div class="flex items-center space-x-2">
-            <button 
-              @click="goToPage(pagination.page - 1)"
-              :disabled="!pagination.hasPrev"
-              class="btn btn-sm btn-secondary"
-              :class="{ 'opacity-50 cursor-not-allowed': !pagination.hasPrev }"
-            >
-              Previous
-            </button>
-            <span class="text-sm text-gray-700">
-              Page {{ pagination.page }} of {{ pagination.totalPages }}
-            </span>
-            <button 
-              @click="goToPage(pagination.page + 1)"
-              :disabled="!pagination.hasNext"
-              class="btn btn-sm btn-secondary"
-              :class="{ 'opacity-50 cursor-not-allowed': !pagination.hasNext }"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
+      <PaginationBar
+        v-model="paginationModel"
+        :total-items="pagination.total"
+        :total-pages="pagination.totalPages"
+        @change="handlePaginationChange"
+      />
     </div>
 
     <!-- Create/Edit Modal -->
@@ -206,14 +182,18 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { catalogsApi } from '@/services/catalogsApi'
 import { useNotifications } from '@/composables/useNotifications'
 import { useModals } from '@/composables/useModals'
 import { formatDate } from '@/utils/formatters'
+import PaginationBar from '@/components/shared/PaginationBar.vue'
 
 export default {
   name: 'EquipmentTypes',
+  components: {
+    PaginationBar
+  },
   setup() {
     const { success, error: showError } = useNotifications()
     const { confirmDelete } = useModals()
@@ -229,19 +209,31 @@ export default {
     
     const pagination = reactive({
       page: 1,
-      limit: 20,
+      limit: 25,
       total: 0,
       totalPages: 0,
       hasNext: false,
       hasPrev: false
     })
-    
+
     const form = reactive({
       id: null,
       name: '',
       description: ''
     })
-    
+
+    // Computed
+    const paginationModel = computed({
+      get: () => ({
+        page: pagination.page,
+        limit: pagination.limit
+      }),
+      set: (value) => {
+        pagination.page = value.page
+        pagination.limit = value.limit
+      }
+    })
+
     // Methods
     const loadEquipmentTypes = async () => {
       loading.value = true
@@ -271,8 +263,9 @@ export default {
       }
     }
     
-    const goToPage = (page) => {
-      pagination.page = page
+    const handlePaginationChange = (newPagination) => {
+      pagination.page = newPagination.page
+      pagination.limit = newPagination.limit
       loadEquipmentTypes()
     }
     
@@ -366,13 +359,14 @@ export default {
       error,
       searchQuery,
       pagination,
+      paginationModel,
       showCreateModal,
       showEditModal,
       saving,
       form,
       loadEquipmentTypes,
       handleSearch,
-      goToPage,
+      handlePaginationChange,
       editType,
       deleteType,
       saveType,

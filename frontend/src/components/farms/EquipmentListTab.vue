@@ -167,62 +167,22 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="pagination.total > 0" class="px-6 py-4 border-t border-gray-200">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <div class="text-sm text-gray-700">
-              Showing {{ ((pagination.page - 1) * pagination.limit) + 1 }} to
-              {{ Math.min(pagination.page * pagination.limit, pagination.total) }} of
-              {{ pagination.total }} results
-            </div>
-            <div class="flex items-center gap-2">
-              <label for="itemsPerPage" class="text-sm text-gray-700">Items per page:</label>
-              <select
-                id="itemsPerPage"
-                v-model="pagination.limit"
-                @change="changePageSize"
-                class="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-              >
-                <option :value="10">10</option>
-                <option :value="25">25</option>
-                <option :value="50">50</option>
-                <option :value="100">100</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="flex gap-2">
-            <button
-              @click="changePage(pagination.page - 1)"
-              :disabled="pagination.page === 1"
-              class="btn btn-sm btn-secondary"
-              :class="{ 'opacity-50 cursor-not-allowed': pagination.page === 1 }"
-            >
-              Previous
-            </button>
-            <span class="px-3 py-1 text-sm text-gray-700">
-              Page {{ pagination.page }} of {{ pagination.pages }}
-            </span>
-            <button
-              @click="changePage(pagination.page + 1)"
-              :disabled="pagination.page >= pagination.pages"
-              class="btn btn-sm btn-secondary"
-              :class="{ 'opacity-50 cursor-not-allowed': pagination.page >= pagination.pages }"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
+      <PaginationBar
+        v-model="paginationModel"
+        :total-items="pagination.total"
+        :total-pages="pagination.pages"
+        @change="handlePaginationChange"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { farmsApi } from '@/services/farmsApi'
 import { catalogsApi } from '@/services/catalogsApi'
 import { useNotifications } from '@/composables/useNotifications'
+import PaginationBar from '@/components/shared/PaginationBar.vue'
 
 const props = defineProps({
   farm: {
@@ -256,6 +216,18 @@ const equipmentModels = ref([])
 
 // Debounce timer
 let searchTimeout = null
+
+// Computed
+const paginationModel = computed({
+  get: () => ({
+    page: pagination.value.page,
+    limit: pagination.value.limit
+  }),
+  set: (value) => {
+    pagination.value.page = value.page
+    pagination.value.limit = value.limit
+  }
+})
 
 // Methods
 const loadEquipment = async () => {
@@ -309,6 +281,12 @@ const loadEquipment = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handlePaginationChange = (newPagination) => {
+  pagination.value.page = newPagination.page
+  pagination.value.limit = newPagination.limit
+  loadEquipment()
 }
 
 const debouncedSearch = () => {

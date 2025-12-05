@@ -113,52 +113,12 @@
       </div>
       
       <!-- Pagination -->
-      <div v-if="pagination.total > 0" class="card-footer">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <div class="text-sm text-gray-700">
-              Showing {{ (pagination.page - 1) * pagination.limit + 1 }} to
-              {{ Math.min(pagination.page * pagination.limit, pagination.total) }} of
-              {{ pagination.total }} results
-            </div>
-            <div class="flex items-center gap-2">
-              <label for="itemsPerPage" class="text-sm text-gray-700">Items per page:</label>
-              <select
-                id="itemsPerPage"
-                v-model="pagination.limit"
-                @change="changePageSize"
-                class="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-              >
-                <option :value="10">10</option>
-                <option :value="25">25</option>
-                <option :value="50">50</option>
-                <option :value="100">100</option>
-              </select>
-            </div>
-          </div>
-          <div class="flex items-center space-x-2">
-            <button
-              @click="goToPage(pagination.page - 1)"
-              :disabled="!pagination.hasPrev"
-              class="btn btn-sm btn-secondary"
-              :class="{ 'opacity-50 cursor-not-allowed': !pagination.hasPrev }"
-            >
-              Previous
-            </button>
-            <span class="text-sm text-gray-700">
-              Page {{ pagination.page }} of {{ pagination.totalPages }}
-            </span>
-            <button
-              @click="goToPage(pagination.page + 1)"
-              :disabled="!pagination.hasNext"
-              class="btn btn-sm btn-secondary"
-              :class="{ 'opacity-50 cursor-not-allowed': !pagination.hasNext }"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
+      <PaginationBar
+        v-model="paginationModel"
+        :total-items="pagination.total"
+        :total-pages="pagination.totalPages"
+        @change="handlePaginationChange"
+      />
     </div>
 
     <!-- Create/Edit Modal -->
@@ -223,14 +183,18 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { catalogsApi } from '@/services/catalogsApi'
 import { useNotifications } from '@/composables/useNotifications'
 import { useModals } from '@/composables/useModals'
 import { formatDate } from '@/utils/formatters'
+import PaginationBar from '@/components/shared/PaginationBar.vue'
 
 export default {
   name: 'ConsumableTypes',
+  components: {
+    PaginationBar
+  },
   setup() {
     const { success, error: showError } = useNotifications()
     const { confirmDelete } = useModals()
@@ -258,7 +222,19 @@ export default {
       name: '',
       description: ''
     })
-    
+
+    // Computed
+    const paginationModel = computed({
+      get: () => ({
+        page: pagination.page,
+        limit: pagination.limit
+      }),
+      set: (value) => {
+        pagination.page = value.page
+        pagination.limit = value.limit
+      }
+    })
+
     // Methods
     const loadConsumableTypes = async () => {
       loading.value = true
@@ -290,13 +266,9 @@ export default {
       }
     }
     
-    const goToPage = (page) => {
-      pagination.page = page
-      loadConsumableTypes()
-    }
-
-    const changePageSize = () => {
-      pagination.page = 1 // Reset to first page when changing page size
+    const handlePaginationChange = (newPagination) => {
+      pagination.page = newPagination.page
+      pagination.limit = newPagination.limit
       loadConsumableTypes()
     }
     
@@ -390,14 +362,14 @@ export default {
       error,
       searchQuery,
       pagination,
+      paginationModel,
       showCreateModal,
       showEditModal,
       saving,
       form,
       loadConsumableTypes,
       handleSearch,
-      goToPage,
-      changePageSize,
+      handlePaginationChange,
       editConsumableType,
       deleteConsumableType,
       saveConsumableType,
