@@ -63,16 +63,54 @@
         <table class="table min-w-full">
           <thead class="table-header">
             <tr>
-              <th class="table-header-cell">Name</th>
-              <th class="table-header-cell">Description</th>
+              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('id')">
+                <div class="flex items-center gap-1">
+                  ID
+                  <span class="text-xs">
+                    <svg v-if="sort === 'id' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                    <svg v-else-if="sort === 'id' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
+                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
+                  </span>
+                </div>
+              </th>
+              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('name')">
+                <div class="flex items-center gap-1">
+                  Name
+                  <span class="text-xs">
+                    <svg v-if="sort === 'name' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                    <svg v-else-if="sort === 'name' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
+                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
+                  </span>
+                </div>
+              </th>
+              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('description')">
+                <div class="flex items-center gap-1">
+                  Description
+                  <span class="text-xs">
+                    <svg v-if="sort === 'description' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                    <svg v-else-if="sort === 'description' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
+                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
+                  </span>
+                </div>
+              </th>
               <th class="table-header-cell">Created By</th>
               <th class="table-header-cell">Created In</th>
-              <th class="table-header-cell">Created</th>
+              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('created_at')">
+                <div class="flex items-center gap-1">
+                  Created
+                  <span class="text-xs">
+                    <svg v-if="sort === 'created_at' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                    <svg v-else-if="sort === 'created_at' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
+                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
+                  </span>
+                </div>
+              </th>
               <th class="table-header-cell">Actions</th>
             </tr>
           </thead>
           <tbody class="table-body">
             <tr v-for="type in equipmentTypes" :key="type.id" class="table-row">
+              <td class="table-cell">{{ type.id }}</td>
               <td class="table-cell font-medium">{{ type.name }}</td>
               <td class="table-cell">{{ type.description || '-' }}</td>
               <td class="table-cell">{{ type.created_by_name || '-' }}</td>
@@ -102,7 +140,7 @@
               </td>
             </tr>
             <tr v-if="equipmentTypes.length === 0" class="table-row">
-              <td colspan="6" class="table-cell text-center text-gray-500 py-8">
+              <td colspan="7" class="table-cell text-center text-gray-500 py-8">
                 No equipment types found
               </td>
             </tr>
@@ -203,6 +241,8 @@ export default {
     const loading = ref(false)
     const error = ref('')
     const searchQuery = ref('')
+    const sort = ref('name')
+    const order = ref('asc')
     const showCreateModal = ref(false)
     const showEditModal = ref(false)
     const saving = ref(false)
@@ -243,7 +283,9 @@ export default {
         const params = {
           page: pagination.page,
           limit: pagination.limit,
-          search: searchQuery.value
+          search: searchQuery.value,
+          sort: sort.value,
+          order: order.value
         }
         
         const response = await catalogsApi.getEquipmentTypes(params)
@@ -268,7 +310,18 @@ export default {
       pagination.limit = newPagination.limit
       loadEquipmentTypes()
     }
-    
+
+    const toggleSort = (field) => {
+      if (sort.value === field) {
+        order.value = order.value === 'asc' ? 'desc' : 'asc'
+      } else {
+        sort.value = field
+        order.value = 'asc'
+      }
+      pagination.page = 1
+      loadEquipmentTypes()
+    }
+
     const editType = (type) => {
       form.id = type.id
       form.name = type.name
@@ -358,6 +411,8 @@ export default {
       loading,
       error,
       searchQuery,
+      sort,
+      order,
       pagination,
       paginationModel,
       showCreateModal,
@@ -367,6 +422,7 @@ export default {
       loadEquipmentTypes,
       handleSearch,
       handlePaginationChange,
+      toggleSort,
       editType,
       deleteType,
       saveType,

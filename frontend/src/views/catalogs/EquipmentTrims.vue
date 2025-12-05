@@ -88,17 +88,64 @@
         <table class="table min-w-full">
           <thead class="table-header">
             <tr>
-              <th class="table-header-cell">Name</th>
-              <th class="table-header-cell">Make</th>
-              <th class="table-header-cell">Model</th>
+              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('id')">
+                <div class="flex items-center gap-1">
+                  ID
+                  <span class="text-xs">
+                    <svg v-if="sort === 'id' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                    <svg v-else-if="sort === 'id' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
+                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
+                  </span>
+                </div>
+              </th>
+              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('name')">
+                <div class="flex items-center gap-1">
+                  Name
+                  <span class="text-xs">
+                    <svg v-if="sort === 'name' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                    <svg v-else-if="sort === 'name' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
+                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
+                  </span>
+                </div>
+              </th>
+              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('make')">
+                <div class="flex items-center gap-1">
+                  Make
+                  <span class="text-xs">
+                    <svg v-if="sort === 'make' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                    <svg v-else-if="sort === 'make' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
+                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
+                  </span>
+                </div>
+              </th>
+              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('model')">
+                <div class="flex items-center gap-1">
+                  Model
+                  <span class="text-xs">
+                    <svg v-if="sort === 'model' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                    <svg v-else-if="sort === 'model' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
+                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
+                  </span>
+                </div>
+              </th>
               <th class="table-header-cell">Created By</th>
               <th class="table-header-cell">Created In</th>
-              <th class="table-header-cell">Created</th>
+              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('created_at')">
+                <div class="flex items-center gap-1">
+                  Created
+                  <span class="text-xs">
+                    <svg v-if="sort === 'created_at' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                    <svg v-else-if="sort === 'created_at' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
+                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
+                  </span>
+                </div>
+              </th>
               <th class="table-header-cell">Actions</th>
             </tr>
           </thead>
           <tbody class="table-body">
             <tr v-for="trim in equipmentTrims" :key="trim.id" class="table-row">
+              <td class="table-cell">{{ trim.id }}</td>
               <td class="table-cell font-medium">{{ trim.name }}</td>
               <td class="table-cell">{{ trim.make_name || '-' }}</td>
               <td class="table-cell">{{ trim.model_name || '-' }}</td>
@@ -129,7 +176,7 @@
               </td>
             </tr>
             <tr v-if="equipmentTrims.length === 0" class="table-row">
-              <td colspan="7" class="table-cell text-center text-gray-500 py-8">
+              <td colspan="8" class="table-cell text-center text-gray-500 py-8">
                 <div v-if="filters.make || filters.model || searchQuery">
                   <p class="mb-2">No equipment trims found for current filters</p>
                   <p class="text-sm">
@@ -266,6 +313,8 @@ export default {
     const loading = ref(false)
     const error = ref('')
     const searchQuery = ref('')
+    const sort = ref('name')
+    const order = ref('asc')
     const showCreateModal = ref(false)
     const showEditModal = ref(false)
     const saving = ref(false)
@@ -320,6 +369,8 @@ export default {
           page: pagination.page,
           limit: pagination.limit,
           search: searchQuery.value,
+          sort: sort.value,
+          order: order.value,
           make: filters.make || undefined,
           model: filters.model || undefined
         }
@@ -403,7 +454,18 @@ export default {
       pagination.limit = newPagination.limit
       loadEquipmentTrims()
     }
-    
+
+    const toggleSort = (field) => {
+      if (sort.value === field) {
+        order.value = order.value === 'asc' ? 'desc' : 'asc'
+      } else {
+        sort.value = field
+        order.value = 'asc'
+      }
+      pagination.page = 1
+      loadEquipmentTrims()
+    }
+
     const editTrim = (trim) => {
       form.id = trim.id
       form.name = trim.name
@@ -503,6 +565,8 @@ export default {
       loading,
       error,
       searchQuery,
+      sort,
+      order,
       filters,
       pagination,
       paginationModel,
@@ -518,6 +582,7 @@ export default {
       onModelChange,
       onFormMakeChange,
       handlePaginationChange,
+      toggleSort,
       editTrim,
       deleteTrim,
       saveTrim,
