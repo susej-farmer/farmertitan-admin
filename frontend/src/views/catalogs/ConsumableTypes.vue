@@ -63,12 +63,88 @@
         <table class="table min-w-full">
           <thead class="table-header">
             <tr>
-              <th class="table-header-cell">ID</th>
-              <th class="table-header-cell">Name</th>
-              <th class="table-header-cell">Description</th>
+              <th class="table-header-cell relative group">
+                <div class="flex items-center gap-1">
+                  ID
+                  <div class="relative">
+                    <button @click="toggleSortMenu('id')" class="p-1 hover:bg-gray-200 rounded">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div v-if="activeSortMenu === 'id'" class="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <button @click="applySort('id', 'asc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        Sort Ascending
+                      </button>
+                      <button @click="applySort('id', 'desc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        Sort Descending
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </th>
+              <th class="table-header-cell relative group">
+                <div class="flex items-center gap-1">
+                  Name
+                  <div class="relative">
+                    <button @click="toggleSortMenu('name')" class="p-1 hover:bg-gray-200 rounded">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div v-if="activeSortMenu === 'name'" class="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <button @click="applySort('name', 'asc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        Sort Ascending
+                      </button>
+                      <button @click="applySort('name', 'desc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        Sort Descending
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </th>
+              <th class="table-header-cell relative group">
+                <div class="flex items-center gap-1">
+                  Description
+                  <div class="relative">
+                    <button @click="toggleSortMenu('description')" class="p-1 hover:bg-gray-200 rounded">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div v-if="activeSortMenu === 'description'" class="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <button @click="applySort('description', 'asc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        Sort Ascending
+                      </button>
+                      <button @click="applySort('description', 'desc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        Sort Descending
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </th>
               <th class="table-header-cell">Created By</th>
               <th class="table-header-cell">Created In</th>
-              <th class="table-header-cell">Created</th>
+              <th class="table-header-cell relative group">
+                <div class="flex items-center gap-1">
+                  Created
+                  <div class="relative">
+                    <button @click="toggleSortMenu('created_at')" class="p-1 hover:bg-gray-200 rounded">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div v-if="activeSortMenu === 'created_at'" class="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <button @click="applySort('created_at', 'asc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        Sort Ascending
+                      </button>
+                      <button @click="applySort('created_at', 'desc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        Sort Descending
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </th>
               <th class="table-header-cell">Actions</th>
             </tr>
           </thead>
@@ -204,10 +280,13 @@ export default {
     const loading = ref(false)
     const error = ref('')
     const searchQuery = ref('')
+    const sort = ref('name')
+    const order = ref('asc')
+    const activeSortMenu = ref(null)
     const showCreateModal = ref(false)
     const showEditModal = ref(false)
     const saving = ref(false)
-    
+
     const pagination = reactive({
       page: 1,
       limit: 25,
@@ -245,8 +324,8 @@ export default {
           page: pagination.page,
           limit: pagination.limit,
           search: searchQuery.value,
-          sort: 'name',
-          order: 'asc'
+          sort: sort.value,
+          order: order.value
         }
 
         const response = await catalogsApi.getConsumableTypes(params)
@@ -350,7 +429,19 @@ export default {
       pagination.page = 1
       loadConsumableTypes()
     }
-    
+
+    const toggleSortMenu = (field) => {
+      activeSortMenu.value = activeSortMenu.value === field ? null : field
+    }
+
+    const applySort = (field, direction) => {
+      sort.value = field
+      order.value = direction
+      activeSortMenu.value = null
+      pagination.page = 1
+      loadConsumableTypes()
+    }
+
     // Lifecycle
     onMounted(() => {
       loadConsumableTypes()
@@ -361,6 +452,9 @@ export default {
       loading,
       error,
       searchQuery,
+      sort,
+      order,
+      activeSortMenu,
       pagination,
       paginationModel,
       showCreateModal,
@@ -370,6 +464,8 @@ export default {
       loadConsumableTypes,
       handleSearch,
       handlePaginationChange,
+      toggleSortMenu,
+      applySort,
       editConsumableType,
       deleteConsumableType,
       saveConsumableType,

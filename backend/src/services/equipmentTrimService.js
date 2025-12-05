@@ -197,9 +197,9 @@ class EquipmentTrimService {
     // Validate search (sanitize)
     const validatedSearch = typeof search === 'string' ? search.trim().substring(0, 100) : '';
 
-    // Validate filters
-    const validatedMake = make && !isNaN(make) ? parseInt(make) : null;
-    const validatedModel = model && !isNaN(model) ? parseInt(model) : null;
+    // Validate filters (UUIDs, not integers)
+    const validatedMake = make && typeof make === 'string' ? make : null;
+    const validatedModel = model && typeof model === 'string' ? model : null;
 
     return {
       page: validatedPage,

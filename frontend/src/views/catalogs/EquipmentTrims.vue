@@ -88,56 +88,106 @@
         <table class="table min-w-full">
           <thead class="table-header">
             <tr>
-              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('id')">
+              <th class="table-header-cell relative group">
                 <div class="flex items-center gap-1">
                   ID
-                  <span class="text-xs">
-                    <svg v-if="sort === 'id' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
-                    <svg v-else-if="sort === 'id' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
-                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
-                  </span>
+                  <div class="relative">
+                    <button @click="toggleSortMenu('id')" class="p-1 hover:bg-gray-200 rounded">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div v-if="activeSortMenu === 'id'" class="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <button @click="applySort('id', 'asc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        Sort Ascending
+                      </button>
+                      <button @click="applySort('id', 'desc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        Sort Descending
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </th>
-              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('name')">
+              <th class="table-header-cell relative group">
                 <div class="flex items-center gap-1">
                   Name
-                  <span class="text-xs">
-                    <svg v-if="sort === 'name' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
-                    <svg v-else-if="sort === 'name' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
-                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
-                  </span>
+                  <div class="relative">
+                    <button @click="toggleSortMenu('name')" class="p-1 hover:bg-gray-200 rounded">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div v-if="activeSortMenu === 'name'" class="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <button @click="applySort('name', 'asc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        Sort Ascending
+                      </button>
+                      <button @click="applySort('name', 'desc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        Sort Descending
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </th>
-              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('make')">
+              <th class="table-header-cell relative group">
                 <div class="flex items-center gap-1">
                   Make
-                  <span class="text-xs">
-                    <svg v-if="sort === 'make' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
-                    <svg v-else-if="sort === 'make' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
-                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
-                  </span>
+                  <div class="relative">
+                    <button @click="toggleSortMenu('make')" class="p-1 hover:bg-gray-200 rounded">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div v-if="activeSortMenu === 'make'" class="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <button @click="applySort('make', 'asc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        Sort Ascending
+                      </button>
+                      <button @click="applySort('make', 'desc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        Sort Descending
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </th>
-              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('model')">
+              <th class="table-header-cell relative group">
                 <div class="flex items-center gap-1">
                   Model
-                  <span class="text-xs">
-                    <svg v-if="sort === 'model' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
-                    <svg v-else-if="sort === 'model' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
-                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
-                  </span>
+                  <div class="relative">
+                    <button @click="toggleSortMenu('model')" class="p-1 hover:bg-gray-200 rounded">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div v-if="activeSortMenu === 'model'" class="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <button @click="applySort('model', 'asc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        Sort Ascending
+                      </button>
+                      <button @click="applySort('model', 'desc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        Sort Descending
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </th>
               <th class="table-header-cell">Created By</th>
               <th class="table-header-cell">Created In</th>
-              <th class="table-header-cell cursor-pointer hover:bg-gray-100" @click="toggleSort('created_at')">
+              <th class="table-header-cell relative group">
                 <div class="flex items-center gap-1">
                   Created
-                  <span class="text-xs">
-                    <svg v-if="sort === 'created_at' && order === 'asc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
-                    <svg v-else-if="sort === 'created_at' && order === 'desc'" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
-                    <svg v-else class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>
-                  </span>
+                  <div class="relative">
+                    <button @click="toggleSortMenu('created_at')" class="p-1 hover:bg-gray-200 rounded">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div v-if="activeSortMenu === 'created_at'" class="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <button @click="applySort('created_at', 'asc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        Sort Ascending
+                      </button>
+                      <button @click="applySort('created_at', 'desc')" class="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        Sort Descending
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </th>
               <th class="table-header-cell">Actions</th>
@@ -315,6 +365,7 @@ export default {
     const searchQuery = ref('')
     const sort = ref('name')
     const order = ref('asc')
+    const activeSortMenu = ref(null)
     const showCreateModal = ref(false)
     const showEditModal = ref(false)
     const saving = ref(false)
@@ -451,13 +502,14 @@ export default {
       loadEquipmentTrims()
     }
 
-    const toggleSort = (field) => {
-      if (sort.value === field) {
-        order.value = order.value === 'asc' ? 'desc' : 'asc'
-      } else {
-        sort.value = field
-        order.value = 'asc'
-      }
+    const toggleSortMenu = (field) => {
+      activeSortMenu.value = activeSortMenu.value === field ? null : field
+    }
+
+    const applySort = (field, direction) => {
+      sort.value = field
+      order.value = direction
+      activeSortMenu.value = null
       pagination.page = 1
       loadEquipmentTrims()
     }
@@ -563,6 +615,7 @@ export default {
       searchQuery,
       sort,
       order,
+      activeSortMenu,
       filters,
       pagination,
       paginationModel,
@@ -578,7 +631,8 @@ export default {
       onModelChange,
       onFormMakeChange,
       handlePaginationChange,
-      toggleSort,
+      toggleSortMenu,
+      applySort,
       editTrim,
       deleteTrim,
       saveTrim,

@@ -183,7 +183,7 @@ class EquipmentModelService {
       sort = 'created_at',
       order = 'desc',
       search = '',
-      make = null
+      makeId = null
     } = options;
 
     // Validate page and limit
@@ -200,8 +200,8 @@ class EquipmentModelService {
     // Validate search (sanitize)
     const validatedSearch = typeof search === 'string' ? search.trim().substring(0, 100) : '';
 
-    // Validate make filter
-    const validatedMake = make && !isNaN(make) ? parseInt(make) : null;
+    // Validate makeId filter (UUID, not integer)
+    const validatedMakeId = makeId && typeof makeId === 'string' ? makeId : null;
 
     return {
       page: validatedPage,
@@ -209,7 +209,7 @@ class EquipmentModelService {
       sort: validatedSort,
       order: validatedOrder,
       search: validatedSearch,
-      make: validatedMake
+      makeId: validatedMakeId
     };
   }
 
