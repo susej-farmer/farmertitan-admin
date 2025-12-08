@@ -196,3 +196,49 @@ $RECYCLE.BIN/
 *.temp
 .tmp/
 .temp/
+
+# Environment variables (CRITICAL - Never commit these!)
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vite build output
+dist/
+dist-ssr/
+
+# Testing
+coverage/
+test-results/
+playwright-report/
+e2e-results/
+
+# IDE & Editor specific files
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Package manager files
+package-lock.json  # Only if using yarn or pnpm
+yarn.lock         # Only if using npm or pnpm
+pnpm-lock.yaml    # Only if using npm or yarn
+
+# Debug and error logs
+*.log.*
+lerna-debug.log*
+
+# Generated files
+*.generated.ts
+*.generated.js
+auto-imports.d.ts
+components.d.ts
+
+# Backup files
+*.backup
+*.bak
+*.old

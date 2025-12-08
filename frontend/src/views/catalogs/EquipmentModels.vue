@@ -13,12 +13,13 @@
             />
           </div>
           <div class="w-64">
-            <select v-model="selectedMake" class="form-select" @change="handleSearch">
-              <option value="">All Makes</option>
-              <option v-for="make in equipmentMakes" :key="make.id" :value="make.id">
-                {{ make.name }}
-              </option>
-            </select>
+            <AutocompleteSelect
+              v-model="selectedMake"
+              :fetch-options="fetchMakes"
+              :initial-label="makeLabel"
+              placeholder="Search makes..."
+              @change="handleMakeChange"
+            />
           </div>
           <button 
             @click="showCreateModal = true"
@@ -264,12 +265,14 @@ import { useModals } from '@/composables/useModals'
 import { formatDate } from '@/utils/formatters'
 import PaginationBar from '@/components/shared/PaginationBar.vue'
 import SearchInput from '@/components/shared/SearchInput.vue'
+import AutocompleteSelect from '@/components/shared/AutocompleteSelect.vue'
 
 export default {
   name: 'EquipmentModels',
   components: {
     PaginationBar,
-    SearchInput
+    SearchInput,
+    AutocompleteSelect
   },
   setup() {
     const { success, error: showError } = useNotifications()
@@ -282,6 +285,7 @@ export default {
     const error = ref('')
     const searchQuery = ref('')
     const selectedMake = ref('')
+    const makeLabel = ref('')
     const sort = ref('name')
     const order = ref('asc')
     const activeSortMenu = ref(null)
@@ -317,6 +321,20 @@ export default {
     })
 
     // Methods
+    const fetchMakes = async (searchQuery) => {
+      try {
+        const params = {
+          search: searchQuery,
+          limit: 10
+        }
+        const response = await catalogsApi.getEquipmentMakes(params)
+        return response.success ? response.data : []
+      } catch (err) {
+        console.error('Failed to fetch makes:', err)
+        return []
+      }
+    }
+
     const loadEquipmentMakes = async () => {
       try {
         const response = await catalogsApi.getEquipmentMakesDropdown()
@@ -455,7 +473,15 @@ export default {
       pagination.page = 1
       loadEquipmentModels()
     }
-    
+
+    const handleMakeChange = (value) => {
+      pagination.page = 1
+      if (!selectedMake.value) {
+        makeLabel.value = ''
+      }
+      loadEquipmentModels()
+    }
+
     // Watch for make selection changes (removed auto-trigger, now only on handleSearch)
     
     // Lifecycle
@@ -471,6 +497,7 @@ export default {
       error,
       searchQuery,
       selectedMake,
+      makeLabel,
       sort,
       order,
       activeSortMenu,
@@ -480,8 +507,10 @@ export default {
       showEditModal,
       saving,
       form,
+      fetchMakes,
       loadEquipmentModels,
       handleSearch,
+      handleMakeChange,
       handlePaginationChange,
       toggleSortMenu,
       applySort,

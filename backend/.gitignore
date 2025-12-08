@@ -101,4 +101,57 @@ dist
 .dynamodb/
 
 # TernJS port file
-.tern-portuploads/
+.tern-port
+
+# Environment variables (CRITICAL - Never commit these!)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Uploads and temporary files
+uploads/
+uploads/**/*
+temp/
+*.csv
+*.xlsx
+
+# Logs directory
+logs/
+*.log
+
+# Database files (if using local SQLite or similar)
+*.sqlite
+*.sqlite3
+*.db
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS files
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Build directories
+dist/
+build/
+
+# SSL certificates (if any)
+*.pem
+*.key
+*.cert
+
+# Backup files
+*.backup
+*.bak
+*.old

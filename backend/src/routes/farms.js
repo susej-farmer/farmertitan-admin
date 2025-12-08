@@ -17,6 +17,59 @@ const {
   validateSearch
 } = require('../middleware/validation');
 
+/**
+ * @swagger
+ * /api/farms:
+ *   get:
+ *     summary: Get all farms
+ *     description: Retrieve a paginated list of farms with optional search filtering
+ *     tags: [Farms]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for farm name or location
+ *     responses:
+ *       200:
+ *         description: Successful response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Farm'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
 // Get all farms
 router.get('/',
   verifyToken,
@@ -60,6 +113,38 @@ router.get('/:id/equipment',
   })
 );
 
+/**
+ * @swagger
+ * /api/farms/{id}:
+ *   get:
+ *     summary: Get farm by ID
+ *     description: Retrieve detailed information about a specific farm
+ *     tags: [Farms]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Farm ID
+ *     responses:
+ *       200:
+ *         description: Successful response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Farm'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
 // Get farm by ID
 router.get('/:id',
   verifyToken,
@@ -74,6 +159,55 @@ router.get('/:id',
   })
 );
 
+/**
+ * @swagger
+ * /api/farms:
+ *   post:
+ *     summary: Create new farm
+ *     description: Create a new farm with the provided information
+ *     tags: [Farms]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - location
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Green Valley Farm
+ *               location:
+ *                 type: string
+ *                 example: Santa Cruz, California
+ *               area:
+ *                 type: number
+ *                 example: 150.5
+ *                 description: Area in hectares
+ *               description:
+ *                 type: string
+ *                 example: Organic vegetable farm
+ *     responses:
+ *       201:
+ *         description: Farm created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Farm'
+ *                 message:
+ *                   type: string
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
 // Create new farm
 router.post('/',
   verifyToken,

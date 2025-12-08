@@ -1,10 +1,60 @@
 # FarmerTitan Admin - Frontend
 
-Modern Vue.js 3 admin panel for farm management operations with QR code generation, equipment tracking, and production batch monitoring.
+> Modern Vue.js 3 admin panel for farm management operations
+
+[![Vue.js](https://img.shields.io/badge/Vue.js-3.3-green.svg)](https://vuejs.org/)
+[![Vite](https://img.shields.io/badge/Vite-4.4-purple.svg)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.3-blue.svg)](https://tailwindcss.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Building for Production](#building-for-production)
+- [Project Structure](#project-structure)
+- [API Integration](#api-integration)
+- [State Management](#state-management)
+- [Styling](#styling)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
 ## Overview
 
 This is the frontend application for FarmerTitan Admin Panel, built with Vue.js 3 and Vite. It provides an intuitive interface for managing farms, equipment, maintenance schedules, production batches, and suppliers.
+
+**Key Highlights:**
+- Modern Vue 3 Composition API
+- Lightning-fast Vite build tool
+- Responsive design with Tailwind CSS
+- Centralized state management with Pinia
+- Comprehensive API integration layer
+
+## Quick Start
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Copy environment variables
+cp .env.example .env
+
+# 3. Configure your .env file
+# VITE_API_URL=http://localhost:3000/api
+
+# 4. Start development server
+npm run dev
+```
+
+The application will be available at `http://localhost:5173`
 
 ## Features
 
@@ -252,13 +302,77 @@ npm run build
 - **Tree Shaking** - Unused code elimination in production builds
 - **Asset Optimization** - Images and assets optimized by Vite
 
+## Testing
+
+Currently, the project uses manual testing. We welcome contributions to add automated testing!
+
+**Planned Testing Stack:**
+- Unit Tests: Vitest
+- Component Tests: Vue Test Utils
+- E2E Tests: Playwright or Cypress
+
 ## Contributing
 
-1. Create a feature branch from `main`
-2. Make your changes following the existing code style
-3. Run linting: `npm run lint`
-4. Test your changes thoroughly
-5. Submit a pull request
+We welcome contributions! Please see [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed guidelines.
+
+### Development Workflow
+
+1. **Fork & Clone** the repository
+2. **Create a feature branch**: `git checkout -b feature/my-feature`
+3. **Make your changes** following Vue 3 Composition API patterns
+4. **Run linting**: `npm run lint`
+5. **Test manually** in development mode
+6. **Commit** using [Conventional Commits](https://www.conventionalcommits.org/):
+   ```
+   feat: add equipment filtering component
+   fix: resolve pagination bug in catalog view
+   style: update button styling for consistency
+   docs: update API integration guide
+   ```
+7. **Push** to your branch: `git push origin feature/my-feature`
+8. **Create a Pull Request** with screenshots if UI changes
+
+### Code Style
+
+- Use **Vue 3 Composition API** (not Options API)
+- Follow **single-responsibility principle** for components
+- Use **Tailwind classes** for styling (avoid custom CSS when possible)
+- Add **JSDoc comments** for complex composables
+- Keep components **small and focused** (< 300 lines)
+- Use **TypeScript-ready patterns** (even without TypeScript)
+
+### Component Guidelines
+
+```vue
+<script setup>
+// 1. Imports
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+// 2. Props & Emits
+const props = defineProps({
+  farmId: { type: String, required: true }
+})
+
+const emit = defineEmits(['update', 'delete'])
+
+// 3. State & Computed
+const loading = ref(false)
+const data = ref([])
+
+// 4. Methods
+const fetchData = async () => {
+  // implementation
+}
+
+// 5. Lifecycle
+onMounted(fetchData)
+</script>
+
+<template>
+  <!-- Clean, semantic HTML with Tailwind -->
+</template>
+```
 
 ## License
 

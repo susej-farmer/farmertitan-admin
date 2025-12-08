@@ -1,10 +1,60 @@
 # FarmerTitan Admin - Backend API
 
-RESTful API backend for FarmerTitan farm management system, built with Node.js, Express, and PostgreSQL.
+> RESTful API backend for FarmerTitan farm management system
+
+[![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4.18-blue.svg)](https://expressjs.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-blue.svg)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Running the Application](#running-the-application)
+- [API Documentation](#api-documentation)
+- [Project Structure](#project-structure)
+- [Testing](#testing)
+- [Security](#security)
+- [Contributing](#contributing)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
 ## Overview
 
 This is the backend API for FarmerTitan Admin Panel, providing endpoints for farm management, equipment tracking, maintenance scheduling, production batch monitoring with QR codes, and supplier management.
+
+**Key Highlights:**
+- Clean 3-layer architecture (Routes → Services → Clients)
+- Comprehensive error handling and logging
+- Secure authentication with JWT
+- CSV import for bulk operations
+- QR code generation and PDF reports
+
+## Quick Start
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Copy environment variables
+cp .env.example .env
+
+# 3. Configure your .env file (see Configuration section)
+
+# 4. Initialize database
+PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -f create-qr-tables.sql
+
+# 5. Start development server
+npm run dev
+```
+
+The API will be available at `http://localhost:3000`
 
 ## Features
 
@@ -245,7 +295,13 @@ backend/
 | POST | `/api/batches` | Create batch |
 | GET | `/api/batches/:id/pdf` | Generate PDF with QR code |
 
-For complete API documentation, see [QR_API_DOCUMENTATION.md](./QR_API_DOCUMENTATION.md)
+### Interactive API Documentation
+
+When the server is running, access the **Swagger UI** for interactive API testing:
+
+**Swagger UI:** `http://localhost:3000/api-docs`
+
+For detailed API documentation, see [QR_API_DOCUMENTATION.md](./QR_API_DOCUMENTATION.md)
 
 ## Architecture
 
@@ -412,11 +468,38 @@ chmod 755 uploads/
 
 ## Contributing
 
-1. Create a feature branch
-2. Write tests for new features
-3. Ensure all tests pass: `npm test`
-4. Follow existing code style
-5. Submit a pull request
+We welcome contributions! Please see [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed guidelines.
+
+### Development Workflow
+
+1. **Fork & Clone** the repository
+2. **Create a feature branch**: `git checkout -b feature/my-feature`
+3. **Make your changes** following our code style
+4. **Write tests** for new features
+5. **Run tests**: `npm test`
+6. **Commit** using [Conventional Commits](https://www.conventionalcommits.org/):
+   ```
+   feat: add new endpoint for batch filtering
+   fix: resolve authentication middleware bug
+   docs: update API documentation
+   ```
+7. **Push** to your branch: `git push origin feature/my-feature`
+8. **Create a Pull Request** with a clear description
+
+### Code Style
+
+- Use ES6+ features
+- Follow existing patterns in the codebase
+- Add JSDoc comments for complex functions
+- Keep functions small and focused
+- Use meaningful variable names
+
+### Testing Guidelines
+
+- Write unit tests for services and clients
+- Write integration tests for API endpoints
+- Aim for >80% code coverage
+- Test error cases and edge cases
 
 ## License
 

@@ -12,30 +12,24 @@
               @clear="handleSearch"
             />
           </div>
-          <div class="w-48">
-            <select
+          <div class="w-64">
+            <AutocompleteSelect
               v-model="filters.make"
+              :fetch-options="fetchMakes"
+              :initial-label="makeLabel"
+              placeholder="Search makes..."
               @change="onMakeChange"
-              class="form-select"
-            >
-              <option value="">All Makes</option>
-              <option v-for="make in makes" :key="make.id" :value="make.id">
-                {{ make.name }}
-              </option>
-            </select>
+            />
           </div>
-          <div class="w-48">
-            <select
+          <div class="w-64">
+            <AutocompleteSelect
               v-model="filters.model"
-              @change="onModelChange"
-              class="form-select"
+              :fetch-options="fetchModels"
+              :initial-label="modelLabel"
               :disabled="!filters.make"
-            >
-              <option value="">All Models</option>
-              <option v-for="model in filteredModels" :key="model.id" :value="model.id">
-                {{ model.name }}
-              </option>
-            </select>
+              placeholder="Search models..."
+              @change="onModelChange"
+            />
           </div>
           <button 
             @click="showCreateModal = true"
@@ -336,13 +330,15 @@ import { useNotifications } from '@/composables/useNotifications'
 import { useModals } from '@/composables/useModals'
 import PaginationBar from '@/components/shared/PaginationBar.vue'
 import SearchInput from '@/components/shared/SearchInput.vue'
+import AutocompleteSelect from '@/components/shared/AutocompleteSelect.vue'
 import { formatDate } from '@/utils/formatters'
 
 export default {
   name: 'EquipmentTrims',
   components: {
     PaginationBar,
-    SearchInput
+    SearchInput,
+    AutocompleteSelect
   },
   setup() {
     const { success, error: showError } = useNotifications()
@@ -361,7 +357,9 @@ export default {
     const showCreateModal = ref(false)
     const showEditModal = ref(false)
     const saving = ref(false)
-    
+    const makeLabel = ref('')
+    const modelLabel = ref('')
+
     const filters = reactive({
       make: '',
       model: ''
@@ -401,8 +399,38 @@ export default {
     })
     
     const formModels = ref([])
-    
+
     // Methods
+    const fetchMakes = async (searchQuery) => {
+      try {
+        const params = {
+          search: searchQuery,
+          limit: 10
+        }
+        const response = await catalogsApi.getEquipmentMakes(params)
+        return response.success ? response.data : []
+      } catch (err) {
+        console.error('Failed to fetch makes:', err)
+        return []
+      }
+    }
+
+    const fetchModels = async (searchQuery) => {
+      if (!filters.make) return []
+      try {
+        const params = {
+          search: searchQuery,
+          makeId: filters.make,
+          limit: 10
+        }
+        const response = await catalogsApi.getEquipmentModels(params)
+        return response.success ? response.data : []
+      } catch (err) {
+        console.error('Failed to fetch models:', err)
+        return []
+      }
+    }
+
     const loadEquipmentTrims = async () => {
       loading.value = true
       error.value = ''
@@ -459,21 +487,26 @@ export default {
       }
     }
     
-    const onMakeChange = async () => {
+    const onMakeChange = async (value) => {
       filters.model = ''
+      modelLabel.value = ''
       pagination.page = 1
       if (filters.make) {
         const modelsForMake = await loadModelsForMake(filters.make)
         models.value = modelsForMake
       } else {
         models.value = []
+        makeLabel.value = ''
       }
       // Auto-reload trims when make changes
       loadEquipmentTrims()
     }
-    
-    const onModelChange = () => {
+
+    const onModelChange = (value) => {
       pagination.page = 1
+      if (!filters.model) {
+        modelLabel.value = ''
+      }
       // Auto-reload trims when model changes
       loadEquipmentTrims()
     }
@@ -617,6 +650,10 @@ export default {
       form,
       filteredModels,
       formModels,
+      makeLabel,
+      modelLabel,
+      fetchMakes,
+      fetchModels,
       loadEquipmentTrims,
       handleSearch,
       onMakeChange,
