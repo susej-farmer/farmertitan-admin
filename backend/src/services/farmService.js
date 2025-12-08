@@ -176,7 +176,7 @@ class FarmService {
   static validateFindAllOptions(options) {
     const {
       page = 1,
-      limit = null,
+      limit = 20,
       sort = 'name',
       order = 'asc',
       search = ''
@@ -184,8 +184,8 @@ class FarmService {
 
     // Validate page and limit
     const validatedPage = Math.max(1, parseInt(page) || 1);
-    // If no limit provided, return null to get all records
-    const validatedLimit = limit ? Math.min(1000, Math.max(1, parseInt(limit))) : null;
+    // Always validate limit, default to 20 if not provided
+    const validatedLimit = Math.min(1000, Math.max(1, parseInt(limit) || 20));
 
     // Validate sort field (whitelist approach)
     const allowedSortFields = ['id', 'name', 'acres', 'created_at', 'status'];

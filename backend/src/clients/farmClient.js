@@ -60,54 +60,52 @@ class FarmClient {
     try {
       const {
         page = 1,
-        limit = null,
+        limit = 20,
         search = '',
         sort = 'name',
         order = 'asc'
       } = options;
-      
+
       const supabase = dbConnection.getClient();
-      
+
       // Validate sort column exists in farm table
       const validSortColumns = ['id', 'name', 'acres', 'created_at'];
       const sortColumn = validSortColumns.includes(sort) ? sort : 'name';
-      
+
       let query = supabase
         .from('farm')
         .select('*', { count: 'exact' });
-      
+
       if (search) {
         query = query.ilike('name', `%${search}%`);
       }
-      
+
       const ascending = order.toLowerCase() === 'asc';
       query = query.order(sortColumn, { ascending });
-      
-      // Only apply pagination if limit is provided
-      if (limit) {
-        const from = (page - 1) * limit;
-        const to = from + limit - 1;
-        query = query.range(from, to);
-      }
-      
+
+      // Apply pagination
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+
       const { data, error, count } = await query;
-      
+
       if (error) {
         console.error('Failed to get farms:', error);
         throw error;
       }
-      
-      const totalPages = limit ? Math.ceil((count || 0) / limit) : 1;
-      
+
+      const totalPages = Math.ceil((count || 0) / limit);
+
       return {
         data: data || [],
         pagination: {
-          page: limit ? page : 1,
-          limit: limit,
+          page,
+          limit,
           total: count || 0,
           totalPages,
-          hasNext: limit ? page < totalPages : false,
-          hasPrev: limit ? page > 1 : false
+          hasNext: page < totalPages,
+          hasPrev: page > 1
         }
       };
     } catch (error) {
