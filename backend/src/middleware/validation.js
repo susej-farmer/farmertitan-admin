@@ -162,7 +162,16 @@ const validatePaginatedQuery = validateQuery(Joi.object({
   order: Joi.string().valid('asc', 'desc').default('desc'),
   search: Joi.string().min(1).max(255).allow(''),
   is_active: Joi.boolean().allow(null),
-  user_id: Joi.string().uuid().allow(null)
+  user_id: Joi.string().uuid().allow(null),
+  status: Joi.string().allow(null),
+  equipment_type: Joi.string().uuid().allow(null),
+  equipment_make: Joi.string().uuid().allow(null),
+  equipment_model: Joi.string().uuid().allow(null),
+  equipment_trim: Joi.string().uuid().allow(null),
+  type_id: Joi.string().uuid().allow(null),
+  make_id: Joi.string().uuid().allow(null),
+  model_id: Joi.string().uuid().allow(null),
+  year: Joi.number().integer().allow(null)
 }));
 
 // Custom validation for equipment types with search (alias for backward compatibility)
@@ -175,7 +184,9 @@ const validateEquipmentModelsQuery = validateQuery(Joi.object({
   sort: Joi.string().default('created_at'),
   order: Joi.string().valid('asc', 'desc').default('desc'),
   search: Joi.string().min(1).max(255).allow(''),
-  makeId: commonSchemas.uuid.allow('')
+  makeId: commonSchemas.uuid.allow('').allow(null),
+  equipment_make_id: commonSchemas.uuid.allow('').allow(null),
+  equipment_make: commonSchemas.uuid.allow('').allow(null)
 }));
 
 // Custom validation for equipment trims with filtering

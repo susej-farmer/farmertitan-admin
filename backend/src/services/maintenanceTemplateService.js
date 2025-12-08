@@ -862,45 +862,28 @@ class MaintenanceTemplateService {
   
   /**
    * Get all maintenance templates with pagination and filtering
+   * Uses PostgreSQL function get_maintenance_templates()
    */
   static async getTemplates(options = {}) {
     try {
-      const result = await TaskClient.findTemplates(options);
-      
-      // Enhance each template with schedule information
-      const enhancedTemplates = [];
-      
-      for (const template of result.data) {
-        try {
-          // Get task series to find schedule information
-          const taskSeries = await TaskSeriesClient.findByTaskTemplate(template.id);
-          let scheduleInfo = null;
-          
-          if (taskSeries && taskSeries.length > 0) {
-            const timeRecord = await TimeClient.findById(taskSeries[0].schedule);
-            scheduleInfo = {
-              interval: timeRecord.value,
-              schedule_type: timeRecord.type === 'schedule:hours' ? 'Hours' : 'Distance',
-              time_type: timeRecord.type
-            };
-          }
-          
-          enhancedTemplates.push({
-            ...template,
-            schedule_info: scheduleInfo,
-            maintenance_category: template._part_type ? 'Part' : 'Consumable',
-            part_or_consumable_name: template._part_type?.name || template._consumable_type?.name
-          });
-        } catch (err) {
-          console.error('Error enhancing template:', err);
-          enhancedTemplates.push(template);
-        }
-      }
-      
-      return {
-        data: enhancedTemplates,
-        pagination: result.pagination
+      const MaintenanceTemplateClient = require('../clients/maintenanceTemplateClient');
+
+      // Validate and normalize options
+      const validatedOptions = {
+        page: parseInt(options.page) || 1,
+        limit: parseInt(options.limit) || 25,
+        search: options.search || null,
+        type_id: options.type_id || null,
+        make_id: options.make_id || null,
+        model_id: options.model_id || null,
+        year: options.year ? parseInt(options.year) : null,
+        sort: options.sort || 'created_at',
+        order: options.order || 'DESC'
       };
+
+      const result = await MaintenanceTemplateClient.getAll(validatedOptions);
+
+      return result;
     } catch (error) {
       console.error('Error getting maintenance templates:', error);
       throw error;

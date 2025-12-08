@@ -22,7 +22,8 @@ router.get('/templates',
     res.json({
       success: true,
       data: result.data,
-      pagination: result.pagination
+      pagination: result.pagination,
+      metadata: result.metadata
     });
   })
 );

@@ -317,60 +317,44 @@ class EquipmentClient {
         limit = 20,
         search = '',
         status = null,
-        equipment_type = null
+        equipment_type = null,
+        equipment_make = null,
+        equipment_model = null,
+        equipment_trim = null
       } = options;
 
       const supabase = dbConnection.getClient();
 
-      // Build query with all required relationships
-      let query = supabase
-        .from('equipment')
-        .select(`
-          *,
-          farm!inner(id, name),
-          _equipment!inner(
-            id,
-            _equipment_type!inner(id, name),
-            _equipment_make!inner(id, name),
-            _equipment_model!inner(id, name)
-          ),
-          equipment_usage_type(
-            _time!usage_time_id(id, type, value, metadata)
-          )
-        `, { count: 'exact' })
-        .eq('farm', farmId);
-
-      // Apply search filter
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,serial_number.ilike.%${search}%`);
-      }
-
-      // Apply status filter
-      if (status) {
-        query = query.eq('status', status);
-      }
-
-      // Apply equipment type filter
-      if (equipment_type) {
-        query = query.eq('_equipment._equipment_type.id', equipment_type);
-      }
-
-      // Apply pagination
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
-      query = query.range(from, to).order('created_at', { ascending: false });
-
-      const { data, error, count } = await query;
+      // Call the PostgreSQL function get_farm_equipment
+      const { data, error } = await supabase.rpc('get_farm_equipment', {
+        p_farm_id: farmId,
+        p_page: page,
+        p_limit: limit,
+        p_search: search || null,
+        p_status: status,
+        p_equipment_type: equipment_type,
+        p_equipment_make: equipment_make,
+        p_equipment_model: equipment_model,
+        p_equipment_trim: equipment_trim
+      });
 
       if (error) {
+        console.error('Failed to get farm equipment:', error);
         throw error;
+      }
+
+      if (!data || !data.success) {
+        const errorMsg = data?.error_message || 'Unknown error from get_farm_equipment';
+        const errorCode = data?.error_code || 'UNKNOWN_ERROR';
+        const { AppError } = require('../middleware/errorHandler');
+        throw new AppError(errorMsg, 400, errorCode);
       }
 
       // Import TaskClient to get maintenance tasks
       const TaskClient = require('./taskClient');
 
       // Post-process each equipment to add maintenance tasks
-      const equipmentWithTasks = await Promise.all((data || []).map(async (equipment) => {
+      const equipmentWithTasks = await Promise.all((data.data || []).map(async (equipment) => {
         try {
           // Get maintenance tasks for this equipment
           const maintenanceTasks = await TaskClient.findByEquipmentAndType(
@@ -398,19 +382,17 @@ class EquipmentClient {
         }
       }));
 
-      const total = count || 0;
-      const totalPages = Math.ceil(total / limit);
-
       return {
         data: equipmentWithTasks,
-        pagination: {
+        pagination: data.pagination || {
           page,
           limit,
-          total,
-          totalPages,
-          hasNext: page < totalPages,
-          hasPrev: page > 1
-        }
+          total: 0,
+          total_pages: 0,
+          has_next: false,
+          has_prev: false
+        },
+        metadata: data.metadata
       };
     } catch (error) {
       console.error('Failed to find equipment by farm', error, { farmId, options });

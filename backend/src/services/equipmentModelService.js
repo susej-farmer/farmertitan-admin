@@ -183,7 +183,9 @@ class EquipmentModelService {
       sort = 'created_at',
       order = 'desc',
       search = '',
-      makeId = null
+      makeId = null,
+      equipment_make_id = null,
+      equipment_make = null
     } = options;
 
     // Validate page and limit
@@ -200,8 +202,9 @@ class EquipmentModelService {
     // Validate search (sanitize)
     const validatedSearch = typeof search === 'string' ? search.trim().substring(0, 100) : '';
 
-    // Validate makeId filter (UUID, not integer)
-    const validatedMakeId = makeId && typeof makeId === 'string' ? makeId : null;
+    // Validate makeId filter (UUID, not integer) - accept multiple alias names
+    const makeIdValue = makeId || equipment_make_id || equipment_make;
+    const validatedMakeId = makeIdValue && typeof makeIdValue === 'string' ? makeIdValue : null;
 
     return {
       page: validatedPage,

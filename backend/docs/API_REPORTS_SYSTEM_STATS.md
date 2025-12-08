@@ -59,6 +59,14 @@ Este endpoint **NO acepta query parameters**. Retorna todas las estadísticas de
         "damaged": 30,
         "retired": 20
       }
+    },
+    "maintenance_templates": {
+      "total_count": 87
+    },
+    "catalog": {
+      "equipment_types_count": 15,
+      "equipment_makes_count": 42,
+      "equipment_models_count": 236
     }
   },
   "metadata": {
@@ -94,6 +102,14 @@ Este endpoint **NO acepta query parameters**. Retorna todas las estadísticas de
   - `lost` (integer): QR codes perdidos
   - `damaged` (integer): QR codes dañados
   - `retired` (integer): QR codes retirados
+
+**`data.maintenance_templates` (object)**: Estadísticas de plantillas de mantenimiento
+- `total_count` (integer): Total de plantillas de mantenimiento en el sistema
+
+**`data.catalog` (object)**: Estadísticas del catálogo de equipos
+- `equipment_types_count` (integer): Cantidad de tipos de equipos
+- `equipment_makes_count` (integer): Cantidad de marcas de equipos
+- `equipment_models_count` (integer): Cantidad de modelos de equipos
 
 **`metadata` (object)**: Metadatos de la operación
 - `timestamp` (timestamp): Momento de ejecución
@@ -253,10 +269,22 @@ interface QRStats {
   };
 }
 
+interface MaintenanceTemplateStats {
+  total_count: number;
+}
+
+interface CatalogStats {
+  equipment_types_count: number;
+  equipment_makes_count: number;
+  equipment_models_count: number;
+}
+
 interface SystemStats {
   equipment: EquipmentStats;
   farms: FarmStats;
   qr: QRStats;
+  maintenance_templates: MaintenanceTemplateStats;
+  catalog: CatalogStats;
 }
 
 function useSystemStats() {
@@ -335,6 +363,18 @@ function DashboardComponent() {
           <li>Damaged: {stats.qr.status_breakdown.damaged}</li>
           <li>Retired: {stats.qr.status_breakdown.retired}</li>
         </ul>
+      </section>
+
+      <section className="maintenance-stats">
+        <h2>Maintenance Templates</h2>
+        <p>Total Templates: {stats.maintenance_templates.total_count}</p>
+      </section>
+
+      <section className="catalog-stats">
+        <h2>Equipment Catalog</h2>
+        <p>Types: {stats.catalog.equipment_types_count}</p>
+        <p>Makes: {stats.catalog.equipment_makes_count}</p>
+        <p>Models: {stats.catalog.equipment_models_count}</p>
       </section>
     </div>
   );
