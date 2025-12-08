@@ -4,6 +4,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const EquipmentImportService = require('../services/equipmentImportService');
+const DefaultTaskImportService = require('../services/defaultTaskImportService');
 const { verifyToken, requireAuth } = require('../middleware/auth');
 const Joi = require('joi');
 const { AppError } = require('../middleware/errorHandler');
@@ -123,6 +124,62 @@ router.post('/equipment',
         success: true,
         data: result,
         message: 'Equipment CSV imported successfully'
+      });
+
+    } catch (error) {
+      // Re-lanzar el error para que lo maneje el errorHandler
+      throw error;
+    } finally {
+      // Limpiar archivo temporal
+      if (tempFilePath && fs.existsSync(tempFilePath)) {
+        fs.unlinkSync(tempFilePath);
+      }
+    }
+  })
+);
+
+/**
+ * POST /api/import/maintenance-templates
+ * Importa plantillas de mantenimiento predeterminadas desde un archivo CSV
+ * @requires Authentication
+ * @param {File} csvFile - Archivo CSV con plantillas de mantenimiento
+ */
+router.post('/maintenance-templates',
+  verifyToken,
+  requireAuth,
+  upload.single('csvFile'), // 'csvFile' es el nombre del campo en form-data
+  handleMulterError, // Manejar errores de multer
+  asyncHandler(async (req, res) => {
+    let tempFilePath = null;
+
+    try {
+      // Validar que se subió un archivo
+      if (!req.file) {
+        throw new AppError(
+          'CSV file is required',
+          400,
+          'MISSING_FILE'
+        );
+      }
+
+      tempFilePath = req.file.path;
+
+      // Llamar al servicio para procesar el CSV
+      const result = await DefaultTaskImportService.importDefaultTasksFromCSV(tempFilePath);
+
+      // Retornar respuesta con detalle de éxitos y errores
+      res.status(200).json({
+        success: true,
+        data: {
+          summary: {
+            total: result.total,
+            successful: result.successful.length,
+            failed: result.failed.length
+          },
+          successful: result.successful,
+          failed: result.failed
+        },
+        message: `Processed ${result.total} rows: ${result.successful.length} successful, ${result.failed.length} failed`
       });
 
     } catch (error) {
