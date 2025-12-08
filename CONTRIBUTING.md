@@ -506,6 +506,296 @@ Currently manual testing. Automated testing contributions are welcome!
 - **Vue Test Utils** for component tests
 - **Playwright/Cypress** for E2E tests
 
+## Working with Database Migrations
+
+### ⚠️ IMPORTANT: Never Modify Database Directly
+
+**❌ NEVER do this:**
+- Edit tables directly in Supabase Studio
+- Run SQL commands manually in production
+- Change schema without creating a migration
+
+**✅ ALWAYS create migrations for database changes**
+
+### Creating a New Migration
+
+When you need to change the database schema:
+
+**1. Create a new migration file:**
+```bash
+supabase migration new add_status_to_equipment
+```
+
+This creates: `supabase/migrations/20241208123456_add_status_to_equipment.sql`
+
+**2. Write your SQL in the migration file:**
+```sql
+-- Add status column to equipment table
+ALTER TABLE equipment ADD COLUMN status VARCHAR(20) DEFAULT 'active';
+
+-- Add check constraint
+ALTER TABLE equipment ADD CONSTRAINT check_status
+  CHECK (status IN ('active', 'maintenance', 'retired'));
+
+-- Create index for better performance
+CREATE INDEX idx_equipment_status ON equipment(status);
+```
+
+**3. Test your migration locally:**
+```bash
+# Apply the migration
+supabase db reset
+
+# Verify it worked
+supabase db diff  # Should show no differences
+```
+
+**4. Commit the migration:**
+```bash
+git add supabase/migrations/
+git commit -m "feat(db): add status column to equipment table"
+```
+
+### Migration Best Practices
+
+#### Writing Safe Migrations
+
+**DO:**
+- Use `IF NOT EXISTS` for CREATE statements
+- Use `IF EXISTS` for DROP statements
+- Add `DEFAULT` values when adding NOT NULL columns
+- Create indexes for foreign keys and frequently queried columns
+- Write reversible migrations when possible
+
+```sql
+-- ✅ Safe migration
+ALTER TABLE farm ADD COLUMN IF NOT EXISTS region VARCHAR(100);
+CREATE INDEX IF NOT EXISTS idx_farm_region ON farm(region);
+```
+
+**DON'T:**
+- Drop columns with data (archive instead)
+- Remove constraints without understanding impact
+- Run migrations that lock tables for long periods
+- Forget to test rollback scenarios
+
+```sql
+-- ❌ Dangerous - loses data
+ALTER TABLE farm DROP COLUMN region;
+```
+
+#### Migration Naming
+
+Use descriptive names:
+
+```bash
+# Good
+supabase migration new add_payment_status_to_orders
+supabase migration new create_audit_logs_table
+supabase migration new add_index_to_user_email
+
+# Bad
+supabase migration new update_db
+supabase migration new fix
+supabase migration new changes
+```
+
+### Applying Migrations in Different Environments
+
+#### Local Development
+
+```bash
+# Apply all pending migrations
+supabase db reset
+
+# OR apply without resetting data
+supabase migration up
+```
+
+#### After Pulling Changes
+
+When you `git pull` and see new migrations:
+
+```bash
+# Reset database to apply new migrations
+supabase db reset
+
+# Your local data will be replaced with seed data
+# If you need to keep local data, use:
+supabase migration up
+```
+
+#### Cloud/Production
+
+```bash
+# Link to your project (first time only)
+supabase link --project-ref your-project-id
+
+# Push migrations to production
+supabase db push
+```
+
+### Common Migration Scenarios
+
+#### Adding a Column
+
+```sql
+-- Migration: add_email_to_suppliers.sql
+ALTER TABLE suppliers
+  ADD COLUMN email VARCHAR(255);
+
+-- Add index if you'll query by email
+CREATE INDEX idx_suppliers_email ON suppliers(email);
+```
+
+#### Creating a New Table
+
+```sql
+-- Migration: create_notifications_table.sql
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  message TEXT NOT NULL,
+  read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX idx_notifications_read ON notifications(read);
+```
+
+#### Adding a Foreign Key
+
+```sql
+-- Migration: add_farm_id_to_equipment.sql
+-- First, add the column
+ALTER TABLE equipment
+  ADD COLUMN farm_id UUID;
+
+-- Then add the foreign key constraint
+ALTER TABLE equipment
+  ADD CONSTRAINT fk_equipment_farm
+  FOREIGN KEY (farm_id)
+  REFERENCES farm(id)
+  ON DELETE SET NULL;
+
+-- Add index for performance
+CREATE INDEX idx_equipment_farm_id ON equipment(farm_id);
+```
+
+#### Renaming a Column (Safe Way)
+
+```sql
+-- Migration: rename_acres_to_area.sql
+-- Step 1: Add new column
+ALTER TABLE farm ADD COLUMN area DECIMAL(10,2);
+
+-- Step 2: Copy data
+UPDATE farm SET area = acres WHERE area IS NULL;
+
+-- Step 3: Drop old column (in a separate migration later)
+-- This allows for safe rollback
+```
+
+### Handling Data Migrations
+
+When you need to transform existing data:
+
+```sql
+-- Migration: populate_equipment_status.sql
+-- Set default status for existing equipment
+UPDATE equipment
+SET status = 'active'
+WHERE status IS NULL;
+
+-- Now make it NOT NULL
+ALTER TABLE equipment
+  ALTER COLUMN status SET NOT NULL;
+```
+
+### Troubleshooting Migrations
+
+#### Migration Failed
+
+```bash
+# Check what went wrong
+supabase db diff
+
+# Reset and try again
+supabase db reset
+
+# If that doesn't work, check migration file for syntax errors
+```
+
+#### Rollback a Migration
+
+```bash
+# There's no built-in rollback, so:
+# 1. Delete the migration file
+rm supabase/migrations/20241208123456_bad_migration.sql
+
+# 2. Reset database
+supabase db reset
+```
+
+#### Migration Conflicts
+
+If two developers create migrations simultaneously:
+
+```bash
+# 1. Pull latest changes
+git pull
+
+# 2. Rename your migration with a later timestamp
+# Migrations run in alphabetical order by filename
+
+# 3. Test that all migrations work together
+supabase db reset
+```
+
+### Migration Checklist
+
+Before committing a migration:
+
+- [ ] Migration file has descriptive name
+- [ ] SQL uses `IF NOT EXISTS` / `IF EXISTS` where appropriate
+- [ ] Added indexes for new foreign keys
+- [ ] Tested locally with `supabase db reset`
+- [ ] Verified no data loss
+- [ ] Documented any manual steps needed
+- [ ] Considered impact on existing data
+- [ ] PR includes migration in the changeset
+
+### Pull Request Guidelines for DB Changes
+
+When your PR includes database changes:
+
+**In PR Description:**
+```markdown
+## Database Changes
+
+- Added `status` column to `equipment` table
+- Created index on `equipment.status`
+
+## Migration Steps
+
+1. Migration will run automatically via `supabase db reset`
+2. No manual intervention needed
+3. Seed data updated to include status values
+
+## Rollback Plan
+
+If issues arise:
+1. Revert this commit
+2. Run `supabase db reset`
+
+## Testing
+
+- [ ] Tested migration locally
+- [ ] Verified existing data not affected
+- [ ] Confirmed indexes created successfully
+```
+
 ## Documentation
 
 ### When to Update Documentation

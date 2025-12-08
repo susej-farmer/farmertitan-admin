@@ -42,19 +42,22 @@ This is the backend API for FarmerTitan Admin Panel, providing endpoints for far
 # 1. Install dependencies
 npm install
 
-# 2. Copy environment variables
+# 2. Start Supabase locally
+supabase start
+
+# 3. Apply database migrations
+supabase db reset
+
+# 4. Copy environment variables
 cp .env.example .env
-
-# 3. Configure your .env file (see Configuration section)
-
-# 4. Initialize database
-PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -f create-qr-tables.sql
+# Update .env with credentials from "supabase start" output
 
 # 5. Start development server
 npm run dev
 ```
 
 The API will be available at `http://localhost:3000`
+Supabase Studio at `http://localhost:54323`
 
 ## Features
 
@@ -157,25 +160,55 @@ JWT_SECRET=your-secure-jwt-secret-key-here
 
 ### 3. Database Setup
 
-**Important:** This application uses **Supabase Client** (`@supabase/supabase-js`), not direct PostgreSQL connections. Supabase provides PostgreSQL + API layer.
+**Important:** This application uses **Supabase**, not direct PostgreSQL. You must use Supabase (local or cloud).
 
 #### Option A: Local Supabase (via Docker) ⭐ Recommended for Development
 
-If you're running Supabase locally with Docker (like via `supabase start`):
+**1. Install Supabase CLI:**
+```bash
+# macOS
+brew install supabase/tap/supabase
 
-**1. Your Docker containers should include:**
-- `supabase_db_*` (PostgreSQL on port 54322)
-- `supabase_studio_*` (Web UI)
-- `supabase_rest_*` (REST API on port 54321)
-- `supabase_auth_*` (Auth service)
+# Other platforms: https://supabase.com/docs/guides/cli/getting-started
+```
 
-**2. Update your `.env`:**
+**2. Start Supabase locally:**
+```bash
+cd /path/to/farmertitan-admin
+supabase start
+```
+
+This will:
+- Start PostgreSQL (port 54322)
+- Start Supabase API (port 54321)
+- Start Supabase Studio (port 54323)
+- Show you the credentials
+
+**3. Apply database migrations:**
+```bash
+supabase db reset
+```
+
+This automatically:
+- Creates all tables (from `/supabase/migrations/`)
+- Loads sample data (from `/supabase/seed.sql`)
+
+**4. Get your credentials:**
+
+After `supabase start`, you'll see:
+```
+API URL: http://127.0.0.1:54321
+anon key: eyJh... (copy this)
+service_role key: eyJh... (copy this)
+```
+
+**5. Update your `.env`:**
 ```env
 SUPABASE_URL=http://127.0.0.1:54321
-SUPABASE_ANON_KEY=<your-local-anon-key>
-SUPABASE_SERVICE_KEY=<your-local-service-key>
+SUPABASE_ANON_KEY=<anon-key-from-supabase-start>
+SUPABASE_SERVICE_KEY=<service-role-key-from-supabase-start>
 
-# Database config (for direct PostgreSQL access if needed)
+# Database config (optional, for direct psql access)
 DB_HOST=127.0.0.1
 DB_PORT=54322
 DB_USER=postgres
@@ -183,45 +216,62 @@ DB_PASSWORD=postgres
 DB_NAME=postgres
 ```
 
-**3. Run the SQL setup script:**
-
-Using `psql` command:
+**6. Verify setup:**
 ```bash
-PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -f create-qr-tables.sql
-```
+# Check if tables were created
+supabase db diff
 
-**OR** using Supabase Studio (Web UI):
-1. Open http://localhost:54323 (or your Studio port)
-2. Go to "SQL Editor"
-3. Copy contents of `create-qr-tables.sql`
-4. Execute the script
+# Open Supabase Studio
+open http://localhost:54323
+```
 
 #### Option B: Supabase Cloud
 
 **1. Create a project:**
 - Go to https://supabase.com
 - Create a new project
-- Wait for it to provision
+- Wait for it to provision (~2 minutes)
 
-**2. Get your credentials:**
+**2. Apply migrations:**
+```bash
+# Link to your cloud project
+supabase link --project-ref your-project-ref
+
+# Push migrations
+supabase db push
+
+# (Optional) Load seed data
+psql "postgresql://postgres:[PASSWORD]@db.your-project.supabase.co:5432/postgres" < supabase/seed.sql
+```
+
+**3. Get your credentials:**
 - Go to Settings > API
-- Copy `Project URL` and `anon/public key` and `service_role key`
+- Copy `Project URL`, `anon key`, and `service_role key`
 
-**3. Update your `.env`:**
+**4. Update your `.env`:**
 ```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_KEY=your_service_role_key
 ```
 
-**4. Run the SQL setup:**
-- Go to SQL Editor in Supabase Dashboard
-- Copy contents of `create-qr-tables.sql`
-- Execute
+#### Useful Commands
 
-**OR** using `psql` (get connection string from Supabase Dashboard):
 ```bash
-psql "postgresql://postgres:[YOUR-PASSWORD]@db.your-project.supabase.co:5432/postgres" -f create-qr-tables.sql
+# Stop local Supabase
+supabase stop
+
+# Reset database (recreate + reseed)
+supabase db reset
+
+# Create new migration
+supabase migration new my_migration_name
+
+# Check migration status
+supabase migration list
+
+# View logs
+supabase logs
 ```
 
 ## Development
