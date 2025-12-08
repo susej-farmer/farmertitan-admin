@@ -97,7 +97,12 @@ The API will be available at `http://localhost:3000`
 
 - **Node.js** >= 18.0.0
 - **npm** >= 9.0.0
-- **PostgreSQL** >= 14.0 or **Supabase account**
+- **Supabase** (Local via Docker or Cloud):
+  - Local: [Supabase CLI](https://supabase.com/docs/guides/cli) with Docker
+  - Cloud: [Supabase account](https://supabase.com)
+- **psql** (PostgreSQL client) - For running SQL scripts
+  - macOS: `brew install postgresql`
+  - Linux: `sudo apt-get install postgresql-client`
 
 ## Installation
 
@@ -152,25 +157,71 @@ JWT_SECRET=your-secure-jwt-secret-key-here
 
 ### 3. Database Setup
 
-#### Option A: Using Supabase
+**Important:** This application uses **Supabase Client** (`@supabase/supabase-js`), not direct PostgreSQL connections. Supabase provides PostgreSQL + API layer.
 
-1. Create a Supabase project at https://supabase.com
-2. Copy your project URL and keys to `.env`
-3. Run the setup scripts:
+#### Option A: Local Supabase (via Docker) ⭐ Recommended for Development
 
-```bash
-node setup-qr-tables.js
+If you're running Supabase locally with Docker (like via `supabase start`):
+
+**1. Your Docker containers should include:**
+- `supabase_db_*` (PostgreSQL on port 54322)
+- `supabase_studio_*` (Web UI)
+- `supabase_rest_*` (REST API on port 54321)
+- `supabase_auth_*` (Auth service)
+
+**2. Update your `.env`:**
+```env
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_ANON_KEY=<your-local-anon-key>
+SUPABASE_SERVICE_KEY=<your-local-service-key>
+
+# Database config (for direct PostgreSQL access if needed)
+DB_HOST=127.0.0.1
+DB_PORT=54322
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=postgres
 ```
 
-#### Option B: Local PostgreSQL
+**3. Run the SQL setup script:**
 
-1. Install PostgreSQL 14 or higher
-2. Create a database
-3. Update `.env` with your database credentials
-4. Run the setup scripts:
-
+Using `psql` command:
 ```bash
-node setup-qr-tables.js
+PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -f create-qr-tables.sql
+```
+
+**OR** using Supabase Studio (Web UI):
+1. Open http://localhost:54323 (or your Studio port)
+2. Go to "SQL Editor"
+3. Copy contents of `create-qr-tables.sql`
+4. Execute the script
+
+#### Option B: Supabase Cloud
+
+**1. Create a project:**
+- Go to https://supabase.com
+- Create a new project
+- Wait for it to provision
+
+**2. Get your credentials:**
+- Go to Settings > API
+- Copy `Project URL` and `anon/public key` and `service_role key`
+
+**3. Update your `.env`:**
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_KEY=your_service_role_key
+```
+
+**4. Run the SQL setup:**
+- Go to SQL Editor in Supabase Dashboard
+- Copy contents of `create-qr-tables.sql`
+- Execute
+
+**OR** using `psql` (get connection string from Supabase Dashboard):
+```bash
+psql "postgresql://postgres:[YOUR-PASSWORD]@db.your-project.supabase.co:5432/postgres" -f create-qr-tables.sql
 ```
 
 ## Development
