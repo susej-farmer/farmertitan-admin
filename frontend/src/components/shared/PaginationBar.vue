@@ -125,10 +125,10 @@ const selectId = `pagination-limit-${Math.random().toString(36).substr(2, 9)}`
 // Computed
 const visiblePages = computed(() => {
   const current = props.modelValue.page
-  const total = props.totalPages || 1
+  const total = Math.max(props.totalPages, 1)
 
-  // Si solo hay una página o menos, retornar array con esa página
-  if (total <= 1) return [1]
+  // Si solo hay una página, retornar array con esa página
+  if (total === 1) return [1]
 
   const delta = 2 // Number of pages to show on each side of current page
   const range = []
