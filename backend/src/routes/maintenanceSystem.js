@@ -11,8 +11,7 @@ const {
 
 const {
   validateId,
-  validatePagination,
-  validateSearch
+  validatePaginatedQuery
 } = require('../middleware/validation');
 
 // =====================================================================================
@@ -66,8 +65,7 @@ router.get('/equipment-type-tasks/:equipmentTypeId',
 
 // Get all equipment with maintenance status
 router.get('/equipment',
-  validatePagination,
-  validateSearch,
+  validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const result = await EquipmentManagementService.getEquipmentWithMaintenanceStatus(req.query);
     res.json({

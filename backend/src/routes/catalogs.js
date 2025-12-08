@@ -23,8 +23,6 @@ const {
   validateId,
   validateMakeId,
   validateMakeAndModelIds,
-  validatePagination,
-  validateSearch,
   validatePaginatedQuery,
   validateEquipmentTypesQuery,
   validateEquipmentModelsQuery,

@@ -30,8 +30,8 @@
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-900">Total Farms</p>
-              <p class="text-2xl font-bold text-gray-900">{{ stats.total_farms || 0 }}</p>
+              <p class="text-sm font-medium text-gray-900">Total Active Farms</p>
+              <p class="text-2xl font-bold text-gray-900">{{ stats.active_farms || 0 }}</p>
             </div>
           </div>
         </div>
@@ -43,13 +43,13 @@
             <div class="flex-shrink-0">
               <div class="w-8 h-8 bg-blue-100 rounded-md flex items-center justify-center">
                 <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m4.5 4.5V19.5a2.25 2.25 0 0 0 2.25 2.25h2.25a2.25 2.25 0 0 0 2.25-2.25v-.75m-6 0a2.25 2.25 0 0 1-2.25-2.25v-.75m6 0V15a2.25 2.25 0 0 1 2.25-2.25h.75m-6 0a2.25 2.25 0 0 0-2.25 2.25v.75m6 0a2.25 2.25 0 0 0 2.25-2.25V15" />
                 </svg>
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-900">Active Farms</p>
-              <p class="text-2xl font-bold text-gray-900">{{ stats.active_farms || 0 }}</p>
+              <p class="text-sm font-medium text-gray-900">Total Active Equipments</p>
+              <p class="text-2xl font-bold text-gray-900">{{ stats.active_equipment || 0 }}</p>
             </div>
           </div>
         </div>
@@ -79,13 +79,14 @@
             <div class="flex-shrink-0">
               <div class="w-8 h-8 bg-purple-100 rounded-md flex items-center justify-center">
                 <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
                 </svg>
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-900">Avg. Acres</p>
-              <p class="text-2xl font-bold text-gray-900">{{ formatNumber(stats.average_acres) || 0 }}</p>
+              <p class="text-sm font-medium text-gray-900">Total Bound QR Codes</p>
+              <p class="text-2xl font-bold text-gray-900">{{ stats.bound_qr || 0 }}</p>
             </div>
           </div>
         </div>
@@ -167,25 +168,25 @@
               <td class="table-cell">{{ farm.equipment_count || 0 }}</td>
               <td class="table-cell">{{ farm.user_count || 0 }}</td>
               <td class="table-cell">
-                <span v-if="farm.active !== false" class="badge bg-green-100 text-green-800">Active</span>
+                <span v-if="farm.status !== false" class="badge bg-green-100 text-green-800">Active</span>
                 <span v-else class="badge bg-red-100 text-red-800">Inactive</span>
               </td>
               <td class="table-cell">{{ formatDate(farm.created_at) }}</td>
               <td class="table-cell">
                 <div class="flex items-center space-x-2">
-                  <router-link 
+                  <router-link
                     :to="{ name: 'FarmDetails', params: { id: farm.id } }"
                     class="btn btn-sm btn-secondary"
                   >
                     View
                   </router-link>
-                  <button 
+                  <button
                     @click="editFarm(farm)"
                     class="btn btn-sm btn-secondary"
                   >
                     Edit
                   </button>
-                  <button 
+                  <button
                     @click="deleteFarm(farm)"
                     class="btn btn-sm btn-danger"
                   >
@@ -287,6 +288,7 @@
 <script>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { farmsApi } from '@/services/farmsApi'
+import { reportsApi } from '@/services/reportsApi'
 import { useNotifications } from '@/composables/useNotifications'
 import { useModals } from '@/composables/useModals'
 import PaginationBar from '@/components/shared/PaginationBar.vue'
@@ -342,32 +344,60 @@ export default {
     // Methods
     const loadStats = async () => {
       try {
-        const response = await farmsApi.getStatistics()
+        const response = await reportsApi.getSystemStats()
         if (response.success) {
-          stats.value = response.data
+          // Map the API response to the stats object
+          stats.value = {
+            active_farms: response.data.farms?.active_count || 0,
+            active_equipment: response.data.equipment?.active_count || 0,
+            total_acres: response.data.farms?.total_acres || 0,
+            bound_qr: response.data.qr?.bound_count || 0
+          }
         }
       } catch (err) {
-        console.error('Failed to load farm statistics:', err)
+        console.error('Failed to load system statistics:', err)
+        // Set default values on error
+        stats.value = {
+          active_farms: 0,
+          active_equipment: 0,
+          total_acres: 0,
+          bound_qr: 0
+        }
       }
     }
     
     const loadFarms = async () => {
       loading.value = true
       error.value = ''
-      
+
       try {
         const params = {
           page: pagination.page,
-          limit: pagination.limit,
-          search: searchQuery.value,
-          active: activeFilter.value !== '' ? activeFilter.value : null
+          limit: pagination.limit
         }
-        
+
+        // Add search parameter if provided
+        if (searchQuery.value) {
+          params.search = searchQuery.value
+        }
+
+        // Add is_active filter if selected (convert to proper format)
+        if (activeFilter.value !== '') {
+          params.is_active = activeFilter.value === 'true'
+        }
+
         const response = await farmsApi.getFarms(params)
-        
+
         if (response.success) {
           farms.value = response.data
-          Object.assign(pagination, response.pagination)
+
+          // Update pagination with correct property names from backend
+          pagination.page = response.pagination.page
+          pagination.limit = response.pagination.limit
+          pagination.total = response.pagination.total
+          pagination.totalPages = response.pagination.total_pages
+          pagination.hasNext = response.pagination.has_next
+          pagination.hasPrev = response.pagination.has_prev
         } else {
           throw new Error(response.message || 'Failed to load farms')
         }
@@ -395,8 +425,8 @@ export default {
       form.id = farm.id
       form.name = farm.name
       form.acres = farm.acres
-      form.active = farm.active !== false
-      
+      form.active = farm.status !== false
+
       showEditModal.value = true
     }
     

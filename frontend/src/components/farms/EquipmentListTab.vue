@@ -266,10 +266,10 @@ const loadEquipment = async () => {
     if (response.success) {
       equipment.value = response.data
       pagination.value = {
-        page: response.page,
-        limit: response.limit,
-        total: response.total,
-        pages: response.pages
+        page: response.pagination.page,
+        limit: response.pagination.limit,
+        total: response.pagination.total,
+        pages: response.pagination.pages
       }
     } else {
       throw new Error(response.message || 'Failed to load equipment')
@@ -331,19 +331,19 @@ const formatDate = (dateString) => {
 const loadFilterOptions = async () => {
   try {
     // Load equipment types
-    const typesResponse = await catalogsApi.getEquipmentTypes({ limit: 1000 })
+    const typesResponse = await catalogsApi.getEquipmentTypes({ limit: 100 })
     if (typesResponse.success) {
       equipmentTypes.value = typesResponse.data
     }
 
     // Load equipment makes
-    const makesResponse = await catalogsApi.getEquipmentMakes({ limit: 1000 })
+    const makesResponse = await catalogsApi.getEquipmentMakes({ limit: 100 })
     if (makesResponse.success) {
       equipmentMakes.value = makesResponse.data
     }
 
     // Load equipment models
-    const modelsResponse = await catalogsApi.getEquipmentModels({ limit: 1000 })
+    const modelsResponse = await catalogsApi.getEquipmentModels({ limit: 100 })
     if (modelsResponse.success) {
       equipmentModels.value = modelsResponse.data
     }

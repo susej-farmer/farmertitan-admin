@@ -6,7 +6,7 @@ class FarmService {
     try {
       // Validate and sanitize input options
       const validatedOptions = this.validateFindAllOptions(options);
-      
+
       // Call the client to get data
       const result = await FarmClient.getAll(validatedOptions);
       
@@ -177,32 +177,38 @@ class FarmService {
     const {
       page = 1,
       limit = 20,
-      sort = 'name',
-      order = 'asc',
-      search = ''
+      search = '',
+      is_active = null,
+      user_id = null
     } = options;
 
     // Validate page and limit
     const validatedPage = Math.max(1, parseInt(page) || 1);
-    // Always validate limit, default to 20 if not provided
-    const validatedLimit = Math.min(1000, Math.max(1, parseInt(limit) || 20));
-
-    // Validate sort field (whitelist approach)
-    const allowedSortFields = ['id', 'name', 'acres', 'created_at', 'status'];
-    const validatedSort = allowedSortFields.includes(sort) ? sort : 'name';
-
-    // Validate order
-    const validatedOrder = ['asc', 'desc'].includes(order?.toLowerCase()) ? order.toLowerCase() : 'asc';
+    // Limit must be between 1 and 100 (as per function constraint)
+    const validatedLimit = Math.min(100, Math.max(1, parseInt(limit) || 20));
 
     // Validate search (sanitize)
-    const validatedSearch = typeof search === 'string' ? search.trim().substring(0, 100) : '';
+    const validatedSearch = typeof search === 'string' && search.trim() !== ''
+      ? search.trim().substring(0, 100)
+      : null;
+
+    // Validate is_active (boolean or null)
+    let validatedIsActive = null;
+    if (is_active === 'true' || is_active === true) {
+      validatedIsActive = true;
+    } else if (is_active === 'false' || is_active === false) {
+      validatedIsActive = false;
+    }
+
+    // Validate user_id (UUID or null)
+    const validatedUserId = user_id && typeof user_id === 'string' ? user_id : null;
 
     return {
       page: validatedPage,
       limit: validatedLimit,
-      sort: validatedSort,
-      order: validatedOrder,
-      search: validatedSearch
+      search: validatedSearch,
+      is_active: validatedIsActive,
+      user_id: validatedUserId
     };
   }
 

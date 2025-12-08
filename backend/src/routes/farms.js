@@ -13,8 +13,7 @@ const {
   validateFarm,
   validateFarmUpdate,
   validateId,
-  validatePagination,
-  validateSearch
+  validatePaginatedQuery
 } = require('../middleware/validation');
 
 /**
@@ -74,8 +73,7 @@ const {
 router.get('/',
   verifyToken,
   requireAuth,
-  validatePagination,
-  validateSearch,
+  validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const result = await FarmService.findAll(req.query);
     res.json({
@@ -91,7 +89,7 @@ router.get('/:id/equipment',
   verifyToken,
   requireAuth,
   validateId,
-  validatePagination,
+  validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const EquipmentService = require('../services/equipmentService');
 

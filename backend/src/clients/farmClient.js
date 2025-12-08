@@ -61,52 +61,48 @@ class FarmClient {
       const {
         page = 1,
         limit = 20,
-        search = '',
-        sort = 'name',
-        order = 'asc'
+        search = null,
+        is_active = null,
+        user_id = null
       } = options;
 
       const supabase = dbConnection.getClient();
 
-      // Validate sort column exists in farm table
-      const validSortColumns = ['id', 'name', 'acres', 'created_at'];
-      const sortColumn = validSortColumns.includes(sort) ? sort : 'name';
-
-      let query = supabase
-        .from('farm')
-        .select('*', { count: 'exact' });
-
-      if (search) {
-        query = query.ilike('name', `%${search}%`);
-      }
-
-      const ascending = order.toLowerCase() === 'asc';
-      query = query.order(sortColumn, { ascending });
-
-      // Apply pagination
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
+      // Call the PostgreSQL function get_farms_with_context
+      const { data, error } = await supabase.rpc('get_farms_with_context', {
+        p_page: page,
+        p_limit: limit,
+        p_search: search || null,
+        p_is_active: is_active,
+        p_user_id: user_id
+      });
 
       if (error) {
         console.error('Failed to get farms:', error);
         throw error;
       }
 
-      const totalPages = Math.ceil((count || 0) / limit);
+      // The function returns a JSONB object with success, data, pagination, metadata
+      if (!data || !data.success) {
+        const errorMsg = data?.error_message || 'Unknown error from get_farms_with_context';
+        const errorCode = data?.error_code || 'UNKNOWN_ERROR';
+        console.error('get_farms_with_context returned error:', errorCode, errorMsg);
+
+        const { AppError } = require('../middleware/errorHandler');
+        throw new AppError(errorMsg, 400, errorCode);
+      }
 
       return {
-        data: data || [],
-        pagination: {
+        data: data.data || [],
+        pagination: data.pagination || {
           page,
           limit,
-          total: count || 0,
-          totalPages,
-          hasNext: page < totalPages,
-          hasPrev: page > 1
-        }
+          total: 0,
+          total_pages: 0,
+          has_next: false,
+          has_prev: false
+        },
+        metadata: data.metadata
       };
     } catch (error) {
       console.error('Failed to get farms', error);

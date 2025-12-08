@@ -9,11 +9,14 @@ const commonSchemas = {
     Joi.number().integer().positive()
   ),
   pagination: Joi.object({
-    page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100).default(20),
-    sort: Joi.string().default('created_at'),
-    order: Joi.string().valid('asc', 'desc').default('desc')
-  }),
+    page: Joi.number().integer().min(1),
+    limit: Joi.number().integer().min(1).max(100),
+    sort: Joi.string(),
+    order: Joi.string().valid('asc', 'desc'),
+    search: Joi.string().allow('', null).max(100),
+    is_active: Joi.boolean().allow(null),
+    user_id: Joi.string().uuid().allow(null)
+  }).options({ stripUnknown: false }),
   search: Joi.object({
     query: Joi.string().min(1).max(255),
     field: Joi.string().default('name')
@@ -151,17 +154,15 @@ const validateMakeAndModelIds = validateParams(Joi.object({
   modelId: commonSchemas.id.required()
 }));
 
-const validatePagination = validateQuery(commonSchemas.pagination);
-
-const validateSearch = validateQuery(commonSchemas.search);
-
 // Universal query validation combining pagination and search
 const validatePaginatedQuery = validateQuery(Joi.object({
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(20),
   sort: Joi.string().default('created_at'),
   order: Joi.string().valid('asc', 'desc').default('desc'),
-  search: Joi.string().min(1).max(255).allow('')
+  search: Joi.string().min(1).max(255).allow(''),
+  is_active: Joi.boolean().allow(null),
+  user_id: Joi.string().uuid().allow(null)
 }));
 
 // Custom validation for equipment types with search (alias for backward compatibility)
@@ -282,8 +283,6 @@ module.exports = {
   validateId,
   validateMakeId,
   validateMakeAndModelIds,
-  validatePagination,
-  validateSearch,
   validatePaginatedQuery,
   validateEquipmentTypesQuery,
   validateEquipmentModelsQuery,

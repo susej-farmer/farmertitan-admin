@@ -11,14 +11,12 @@ const {
 const {
   validateMaintenanceTemplate,
   validateId,
-  validatePagination,
-  validateSearch
+  validatePaginatedQuery
 } = require('../middleware/validation');
 
 // Get all maintenance templates
 router.get('/templates',
-  validatePagination,
-  validateSearch,
+  validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const result = await MaintenanceTemplateService.getTemplates(req.query);
     res.json({

@@ -17,10 +17,9 @@ const {
 } = require('../middleware/errorHandler');
 
 const { verifyToken, requireAuth } = require('../middleware/auth');
-const { 
-  validatePagination,
-  validateId,
-  validateSearch
+const {
+  validatePaginatedQuery,
+  validateId
 } = require('../middleware/validation');
 
 // QR Code Management Routes
@@ -30,7 +29,7 @@ const {
  * Get all QR codes with filtering and pagination
  */
 router.get('/', 
-  validatePagination,
+  validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const {
       page = 1,
@@ -199,7 +198,7 @@ router.post('/bulk-update',
  * Get all production batches
  */
 router.get('/batches',
-  validatePagination,
+  validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const {
       page = 1,
@@ -289,7 +288,7 @@ router.get('/batches/stats/overview',
 router.get('/suppliers',
   verifyToken,
   requireAuth,
-  validatePagination,
+  validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, search = '', sort = 'name', order = 'asc' } = req.query;
     
@@ -359,7 +358,7 @@ router.get('/analytics/distribution',
  * Get all QR delivery requests with filtering and pagination
  */
 router.get('/requests',
-  validatePagination,
+  validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const {
       page = 1,
@@ -733,7 +732,7 @@ router.get('/batches/:id/qr-codes',
   verifyToken,
   requireAuth,
   validateId,
-  validatePagination,
+  validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const { page = 1, limit = 50, sort = 'print_position', order = 'asc' } = req.query;
     
