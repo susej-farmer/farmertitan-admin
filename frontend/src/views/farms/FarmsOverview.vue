@@ -156,6 +156,7 @@
               <th class="table-header-cell">Acres</th>
               <th class="table-header-cell">Equipment</th>
               <th class="table-header-cell">Users</th>
+              <th class="table-header-cell">Tasks</th>
               <th class="table-header-cell">Status</th>
               <th class="table-header-cell">Created</th>
               <th class="table-header-cell">Actions</th>
@@ -167,6 +168,12 @@
               <td class="table-cell">{{ formatNumber(farm.acres) }}</td>
               <td class="table-cell">{{ farm.equipment_count || 0 }}</td>
               <td class="table-cell">{{ farm.user_count || 0 }}</td>
+              <td class="table-cell">
+                <TaskBadges
+                  :open-tasks="farm.open_tasks || []"
+                  :closed-tasks="farm.close_tasks || []"
+                />
+              </td>
               <td class="table-cell">
                 <span v-if="farm.status !== false" class="badge bg-green-100 text-green-800">Active</span>
                 <span v-else class="badge bg-red-100 text-red-800">Inactive</span>
@@ -196,7 +203,7 @@
               </td>
             </tr>
             <tr v-if="farms.length === 0" class="table-row">
-              <td colspan="7" class="table-cell text-center text-gray-500 py-8">
+              <td colspan="8" class="table-cell text-center text-gray-500 py-8">
                 No farms found
               </td>
             </tr>
@@ -220,7 +227,7 @@
           <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
         </div>
         
-        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto">
           <form @submit.prevent="saveFarm">
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
@@ -238,7 +245,7 @@
                     placeholder="Enter farm name"
                   />
                 </div>
-                
+
                 <div>
                   <label class="form-label">Acres *</label>
                   <input
@@ -251,13 +258,29 @@
                     placeholder="Enter acres"
                   />
                 </div>
-                
+
                 <div>
                   <label class="form-label">Status</label>
                   <select v-model="form.active" class="form-select">
                     <option :value="true">Active</option>
                     <option :value="false">Inactive</option>
                   </select>
+                </div>
+
+                <!-- Farm Details Divider -->
+                <div class="border-t border-gray-200 pt-4 mt-4">
+                  <h4 class="text-sm font-semibold text-gray-900 mb-3">Farm Details</h4>
+
+                  <!-- Crops Selector -->
+                  <div class="mb-4">
+                    <label class="form-label">Crops</label>
+                    <CropsSelector v-model="form.crops" />
+                  </div>
+
+                  <!-- Metadata Editor -->
+                  <div>
+                    <MetadataEditor v-model="form.metadata" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -292,11 +315,18 @@ import { reportsApi } from '@/services/reportsApi'
 import { useNotifications } from '@/composables/useNotifications'
 import { useModals } from '@/composables/useModals'
 import PaginationBar from '@/components/shared/PaginationBar.vue'
+import TaskBadges from '@/components/shared/TaskBadges.vue'
+
+import CropsSelector from '@/components/farms/CropsSelector.vue'
+import MetadataEditor from '@/components/farms/MetadataEditor.vue'
 
 export default {
   name: 'FarmsOverview',
   components: {
-    PaginationBar
+    PaginationBar,
+    TaskBadges,
+    CropsSelector,
+    MetadataEditor
   },
   setup() {
     const { success, error: showError } = useNotifications()
@@ -326,7 +356,9 @@ export default {
       id: null,
       name: '',
       acres: null,
-      active: true
+      active: true,
+      crops: [],
+      metadata: {}
     })
 
     // Computed
@@ -427,6 +459,14 @@ export default {
       form.acres = farm.acres
       form.active = farm.status !== false
 
+      // Load metadata
+      const metadata = farm.metadata || {}
+      form.crops = metadata.crops || []
+
+      // Load other metadata (excluding crops)
+      const { crops, ...otherMetadata } = metadata
+      form.metadata = otherMetadata
+
       showEditModal.value = true
     }
     
@@ -451,21 +491,28 @@ export default {
     
     const saveFarm = async () => {
       saving.value = true
-      
+
       try {
+        // Build metadata object
+        const metadata = {
+          ...form.metadata,
+          crops: form.crops
+        }
+
         const data = {
           name: form.name,
           acres: form.acres,
-          active: form.active
+          active: form.active,
+          metadata: metadata
         }
-        
+
         let response
         if (showEditModal.value) {
           response = await farmsApi.updateFarm(form.id, data)
         } else {
           response = await farmsApi.createFarm(data)
         }
-        
+
         if (response.success) {
           success(`Farm ${showEditModal.value ? 'updated' : 'created'} successfully`)
           closeModal()
@@ -489,6 +536,8 @@ export default {
       form.name = ''
       form.acres = null
       form.active = true
+      form.crops = []
+      form.metadata = {}
     }
     
     const formatDate = (dateString) => {

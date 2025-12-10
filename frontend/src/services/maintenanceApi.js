@@ -35,6 +35,11 @@ export const maintenanceApi = {
     return apiUtils.getPaginated('/maintenance-system/equipment-templates', filters)
   },
 
+  // Get maintenance templates (new endpoint)
+  async getMaintenanceTemplates(params = {}) {
+    return apiUtils.getPaginated('/maintenance/templates', params)
+  },
+
   // Get maintenance tasks for specific equipment
   async getMaintenanceTasksForEquipment(equipmentId) {
     const response = await api.get(`/maintenance-system/equipment-tasks/${equipmentId}`)
@@ -62,6 +67,19 @@ export const maintenanceApi = {
   // Update maintenance task template
   async updateMaintenanceTask(taskId, scheduleId, updateData) {
     const response = await api.put(`/maintenance-system/task/${taskId}/schedule/${scheduleId}`, updateData)
+    return response.data
+  },
+
+  // Bulk import maintenance templates
+  async bulkImportTemplates(file) {
+    const formData = new FormData()
+    formData.append('csvFile', file)
+
+    const response = await api.post('/import/maintenance-templates', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
     return response.data
   }
 }

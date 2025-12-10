@@ -87,30 +87,6 @@
       </div>
     </div>
 
-    <!-- Additional Stats Row -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      <!-- Equipment Makes -->
-      <div class="card">
-        <div class="card-body">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Equipment Makes</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ stats.equipmentMakes }}</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
 
     <!-- Quick Actions -->
     <div class="grid grid-cols-1 gap-5 lg:grid-cols-1">
@@ -146,67 +122,46 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, onMounted } from 'vue'
+import { reportsApi } from '@/services/reportsApi'
 
-export default {
-  name: 'Dashboard',
-  setup() {
-    const stats = ref({
+const stats = ref({
+  totalFarms: 0,
+  totalEquipment: 0,
+  maintenanceTemplates: 0,
+  equipmentTypes: 0
+})
+
+const loadStats = async () => {
+  try {
+    const response = await reportsApi.getSystemStats()
+
+    if (response.success) {
+      stats.value = {
+        totalFarms: response.data.farms?.total_count || 0,
+        totalEquipment: response.data.equipment?.active_count || 0,
+        maintenanceTemplates: response.data.maintenance_templates?.total_count || 0,
+        equipmentTypes: response.data.catalog?.equipment_types_count || 0
+      }
+
+      console.log('Dashboard stats loaded:', stats.value)
+    } else {
+      throw new Error(response.message || 'Failed to load system stats')
+    }
+  } catch (error) {
+    console.error('Failed to load dashboard stats:', error)
+    // Keep fallback values at 0
+    stats.value = {
       totalFarms: 0,
       totalEquipment: 0,
       maintenanceTemplates: 0,
       equipmentTypes: 0
-    })
-    
-    
-    const loadStats = async () => {
-      try {
-        // Import API services
-        const api = (await import('@/services/api')).default
-        const { catalogsApi } = await import('@/services/catalogsApi')
-        
-        // Test API connection
-        const healthResponse = await fetch('http://localhost:3000/health')
-        const healthData = await healthResponse.json()
-        console.log('API Health:', healthData)
-        
-        // Fetch real data from working endpoints
-        const [equipmentTypesResponse, equipmentMakesResponse] = await Promise.all([
-          catalogsApi.getEquipmentTypes({ page: 1, limit: 1 }),
-          catalogsApi.getEquipmentMakes({ page: 1, limit: 1 })
-        ])
-        
-        stats.value = {
-          totalFarms: 0, // Farm endpoint not fully implemented yet
-          totalEquipment: 0, // Equipment endpoint not implemented yet
-          maintenanceTemplates: 0, // Templates endpoint not implemented yet
-          equipmentTypes: equipmentTypesResponse.pagination?.total || 0,
-          equipmentMakes: equipmentMakesResponse.pagination?.total || 0
-        }
-        
-        console.log('Dashboard stats loaded:', stats.value)
-      } catch (error) {
-        console.error('Failed to load dashboard stats:', error)
-        // Use fallback data
-        stats.value = {
-          totalFarms: 0,
-          totalEquipment: 0,
-          maintenanceTemplates: 0,
-          equipmentTypes: 0,
-          equipmentMakes: 0
-        }
-      }
-    }
-    
-    
-    onMounted(() => {
-      loadStats()
-    })
-    
-    return {
-      stats
     }
   }
 }
+
+onMounted(() => {
+  loadStats()
+})
 </script>

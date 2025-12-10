@@ -27,44 +27,44 @@
           <option value="">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
-          <option value="maintenance">Maintenance</option>
         </select>
 
         <!-- Equipment Type Filter -->
-        <select
-          v-model="filters.equipment_type"
-          @change="loadEquipment"
-          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-        >
-          <option value="">All Types</option>
-          <option v-for="type in equipmentTypes" :key="type.id" :value="type.id">
-            {{ type.name }}
-          </option>
-        </select>
+        <div class="w-64">
+          <AutocompleteSelect
+            v-model="filters.equipment_type"
+            :fetch-options="fetchTypes"
+            :initial-label="selectedTypeLabel"
+            placeholder="Search types..."
+            @change="handleTypeChange"
+            @select="handleTypeSelect"
+          />
+        </div>
 
         <!-- Equipment Make Filter -->
-        <select
-          v-model="filters.equipment_make"
-          @change="loadEquipment"
-          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-        >
-          <option value="">All Makes</option>
-          <option v-for="make in equipmentMakes" :key="make.id" :value="make.id">
-            {{ make.name }}
-          </option>
-        </select>
+        <div class="w-64">
+          <AutocompleteSelect
+            v-model="filters.equipment_make"
+            :fetch-options="fetchMakes"
+            :initial-label="selectedMakeLabel"
+            placeholder="Search makes..."
+            @change="handleMakeChange"
+            @select="handleMakeSelect"
+          />
+        </div>
 
         <!-- Equipment Model Filter -->
-        <select
-          v-model="filters.equipment_model"
-          @change="loadEquipment"
-          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-        >
-          <option value="">All Models</option>
-          <option v-for="model in equipmentModels" :key="model.id" :value="model.id">
-            {{ model.name }}
-          </option>
-        </select>
+        <div class="w-64">
+          <AutocompleteSelect
+            v-model="filters.equipment_model"
+            :fetch-options="fetchModels"
+            :initial-label="selectedModelLabel"
+            :disabled="!filters.equipment_make"
+            placeholder="Search models..."
+            @change="handleModelChange"
+            @select="handleModelSelect"
+          />
+        </div>
       </div>
     </div>
 
@@ -183,6 +183,7 @@ import { farmsApi } from '@/services/farmsApi'
 import { catalogsApi } from '@/services/catalogsApi'
 import { useNotifications } from '@/composables/useNotifications'
 import PaginationBar from '@/components/shared/PaginationBar.vue'
+import AutocompleteSelect from '@/components/shared/AutocompleteSelect.vue'
 
 const props = defineProps({
   farm: {
@@ -213,6 +214,11 @@ const pagination = ref({
 const equipmentTypes = ref([])
 const equipmentMakes = ref([])
 const equipmentModels = ref([])
+
+// Labels for autocomplete initial values
+const selectedTypeLabel = ref('')
+const selectedMakeLabel = ref('')
+const selectedModelLabel = ref('')
 
 // Debounce timer
 let searchTimeout = null
@@ -328,28 +334,117 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString()
 }
 
-const loadFilterOptions = async () => {
+// Fetch functions for AutocompleteSelect
+const fetchTypes = async (searchQuery) => {
   try {
-    // Load equipment types
-    const typesResponse = await catalogsApi.getEquipmentTypes({ limit: 100 })
-    if (typesResponse.success) {
-      equipmentTypes.value = typesResponse.data
+    const params = {
+      search: searchQuery,
+      limit: 20,
+      sort: 'name',
+      order: 'asc'
     }
-
-    // Load equipment makes
-    const makesResponse = await catalogsApi.getEquipmentMakes({ limit: 100 })
-    if (makesResponse.success) {
-      equipmentMakes.value = makesResponse.data
-    }
-
-    // Load equipment models
-    const modelsResponse = await catalogsApi.getEquipmentModels({ limit: 100 })
-    if (modelsResponse.success) {
-      equipmentModels.value = modelsResponse.data
-    }
+    const response = await catalogsApi.getEquipmentTypes(params)
+    return response.success ? response.data : []
   } catch (err) {
-    console.error('Failed to load filter options:', err)
+    console.error('Failed to fetch types:', err)
+    return []
   }
+}
+
+const fetchMakes = async (searchQuery) => {
+  try {
+    const params = {
+      search: searchQuery,
+      limit: 20,
+      sort: 'name',
+      order: 'asc'
+    }
+    const response = await catalogsApi.getEquipmentMakes(params)
+    return response.success ? response.data : []
+  } catch (err) {
+    console.error('Failed to fetch makes:', err)
+    return []
+  }
+}
+
+const fetchModels = async (searchQuery) => {
+  try {
+    const params = {
+      search: searchQuery,
+      limit: 20,
+      sort: 'name',
+      order: 'asc'
+    }
+
+    // Filter by selected make if exists
+    if (filters.value.equipment_make) {
+      params.equipment_make_id = filters.value.equipment_make
+    }
+
+    const response = await catalogsApi.getEquipmentModels(params)
+    return response.success ? response.data : []
+  } catch (err) {
+    console.error('Failed to fetch models:', err)
+    return []
+  }
+}
+
+// Select handlers for autocomplete (receive full object)
+const handleTypeSelect = (option) => {
+  if (option) {
+    selectedTypeLabel.value = option.name
+  } else {
+    selectedTypeLabel.value = ''
+  }
+}
+
+const handleMakeSelect = (option) => {
+  if (option) {
+    selectedMakeLabel.value = option.name
+  } else {
+    selectedMakeLabel.value = ''
+  }
+}
+
+const handleModelSelect = (option) => {
+  if (option) {
+    selectedModelLabel.value = option.name
+  } else {
+    selectedModelLabel.value = ''
+  }
+}
+
+// Change handlers for autocomplete (receive ID value)
+const handleTypeChange = (value) => {
+  filters.value.equipment_type = value
+  if (!value) {
+    selectedTypeLabel.value = ''
+  }
+  pagination.value.page = 1
+  loadEquipment()
+}
+
+const handleMakeChange = (value) => {
+  filters.value.equipment_make = value
+
+  // Clear model selection when make changes
+  if (!value) {
+    selectedMakeLabel.value = ''
+    filters.value.equipment_model = ''
+    selectedModelLabel.value = ''
+  }
+
+  pagination.value.page = 1
+  loadEquipment()
+}
+
+const handleModelChange = (value) => {
+  filters.value.equipment_model = value
+  if (!value) {
+    selectedModelLabel.value = ''
+  }
+  pagination.value.page = 1
+  loadEquipment()
 }
 
 // Watch for farm changes
@@ -361,7 +456,6 @@ watch(() => props.farm?.id, (newId) => {
 
 // Lifecycle
 onMounted(() => {
-  loadFilterOptions()
   loadEquipment()
 })
 </script>

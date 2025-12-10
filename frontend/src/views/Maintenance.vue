@@ -1,714 +1,548 @@
 <template>
-  <div class="maintenance-view">
+  <div class="space-y-6">
     <!-- Header -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-semibold text-gray-900">Maintenance Templates</h1>
-      <p class="text-gray-600 mt-1">Manage equipment maintenance templates and schedules</p>
+    <div class="flex items-start justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Maintenance Templates</h1>
+        <p class="text-gray-600 mt-1">Manage equipment maintenance templates and schedules</p>
+      </div>
+      <button @click="showBulkImportModal = true" class="btn btn-primary flex items-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg>
+        Bulk Import
+      </button>
     </div>
 
-    <!-- Filters -->
-    <div class="bg-white p-4 rounded-lg shadow mb-6">
-      <div class="grid grid-cols-12 gap-3 items-end">
-        <!-- Equipment Type Filter -->
-        <div class="col-span-3">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-          <select 
-            v-model="filters.equipment_type" 
-            @change="applyFilters"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm"
-          >
-            <option value="">All Types</option>
-            <option v-for="type in filterOptions.types" :key="type" :value="type">
-              {{ type }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Equipment Make Filter -->
-        <div class="col-span-2">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Make</label>
-          <select 
-            v-model="filters.equipment_make" 
-            @change="applyFilters"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm"
-          >
-            <option value="">All Makes</option>
-            <option v-for="make in filterOptions.makes" :key="make" :value="make">
-              {{ make }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Equipment Model Filter -->
-        <div class="col-span-3">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Model</label>
-          <select 
-            v-model="filters.equipment_model" 
-            @change="applyFilters"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm"
-          >
-            <option value="">All Models</option>
-            <option v-for="model in filterOptions.models" :key="model" :value="model">
-              {{ model }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Equipment Trim Filter -->
-        <div v-if="filterOptions.trims.length > 0" class="col-span-2">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Trim</label>
-          <select 
-            v-model="filters.equipment_trim" 
-            @change="applyFilters"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm"
-          >
-            <option value="">All Trims</option>
-            <option v-for="trim in filterOptions.trims" :key="trim" :value="trim">
-              {{ trim }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Clear Filters Button -->
-        <div :class="filterOptions.trims.length > 0 ? 'col-span-2' : 'col-span-4'">
-          <button 
-            @click="clearFilters"
-            class="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-          >
-            Clear Filters
-          </button>
+    <!-- Search and Filters -->
+    <div class="card">
+      <div class="card-body">
+        <div class="flex items-center space-x-4">
+          <div class="flex-1">
+            <SearchInput
+              v-model="searchQuery"
+              placeholder="Search templates..."
+              @search="handleSearch"
+              @clear="handleSearch"
+            />
+          </div>
+          <div class="w-64">
+            <AutocompleteSelect
+              v-model="filters.equipment_type_id"
+              :fetch-options="fetchTypes"
+              :initial-label="selectedTypeLabel"
+              placeholder="Search types..."
+              @change="handleTypeChange"
+              @select="handleTypeSelect"
+            />
+          </div>
+          <div class="w-64">
+            <AutocompleteSelect
+              v-model="filters.equipment_make_id"
+              :fetch-options="fetchMakes"
+              :initial-label="selectedMakeLabel"
+              placeholder="Search makes..."
+              @change="handleMakeChange"
+              @select="handleMakeSelect"
+            />
+          </div>
+          <div class="w-64">
+            <AutocompleteSelect
+              v-model="filters.equipment_model_id"
+              :fetch-options="fetchModels"
+              :initial-label="selectedModelLabel"
+              :disabled="!filters.equipment_make_id"
+              placeholder="Search models..."
+              @change="handleModelChange"
+              @select="handleModelSelect"
+            />
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-      <span class="ml-2 text-gray-600">Loading equipment templates...</span>
+    <div v-if="loading" class="text-center py-12">
+      <div class="loading-spinner w-8 h-8 mx-auto mb-4"></div>
+      <p class="text-gray-600">Loading maintenance templates...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+    <div v-else-if="error" class="card">
+      <div class="card-body text-center py-8">
+        <div class="text-red-500 mb-4">
+          <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Error Loading Data</h3>
-          <div class="mt-2 text-sm text-red-700">{{ error }}</div>
-        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Error Loading Templates</h3>
+        <p class="text-gray-600 mb-4">{{ error }}</p>
+        <button @click="loadTemplates" class="btn btn-primary">
+          Try Again
+        </button>
       </div>
     </div>
 
-    <!-- Equipment Table -->
-    <div v-else class="bg-white shadow rounded-lg overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Type
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Make
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Model
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Trim
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Year
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Maintenance Status
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Created
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-for="equipment in paginatedEquipment" :key="`${equipment._equipment_type_id}-${equipment._equipment_id}`" class="hover:bg-gray-50">
-            <!-- Type -->
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-              <template v-if="isEditing(equipment)">
-                <select 
-                  v-model="editingData.equipment_type_name"
-                  class="w-full rounded border-gray-300 text-sm"
-                >
-                  <option value="">Select Type</option>
-                  <option v-for="type in catalogOptions.types" :key="type" :value="type">
-                    {{ type }}
-                  </option>
-                </select>
-              </template>
-              <template v-else>
-                {{ equipment.equipment_type_name || '-' }}
-              </template>
-            </td>
-            
-            <!-- Make -->
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              <template v-if="isEditing(equipment)">
-                <select 
-                  v-model="editingData.equipment_make_name"
-                  class="w-full rounded border-gray-300 text-sm"
-                >
-                  <option value="">Select Make</option>
-                  <option v-for="make in catalogOptions.makes" :key="make" :value="make">
-                    {{ make }}
-                  </option>
-                </select>
-              </template>
-              <template v-else>
-                {{ equipment.equipment_make_name || '-' }}
-              </template>
-            </td>
-            
-            <!-- Model -->
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              <template v-if="isEditing(equipment)">
-                <select 
-                  v-model="editingData.equipment_model_name"
-                  class="w-full rounded border-gray-300 text-sm"
-                >
-                  <option value="">Select Model</option>
-                  <option v-for="model in catalogOptions.models" :key="model" :value="model">
-                    {{ model }}
-                  </option>
-                </select>
-              </template>
-              <template v-else>
-                {{ equipment.equipment_model_name || '-' }}
-              </template>
-            </td>
-            
-            <!-- Trim -->
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              <template v-if="isEditing(equipment)">
-                <select 
-                  v-model="editingData.equipment_trim_name"
-                  class="w-full rounded border-gray-300 text-sm"
-                >
-                  <option value="">Select Trim</option>
-                  <option v-for="trim in catalogOptions.trims" :key="trim" :value="trim">
-                    {{ trim }}
-                  </option>
-                </select>
-              </template>
-              <template v-else>
-                {{ equipment.equipment_trim_name || '-' }}
-              </template>
-            </td>
-            
-            <!-- Year -->
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              <template v-if="isEditing(equipment)">
-                <input 
-                  v-model="editingData.equipment_year"
-                  type="number"
-                  min="1900"
-                  max="2030"
-                  class="w-full rounded border-gray-300 text-sm"
-                  placeholder="Year"
-                />
-              </template>
-              <template v-else>
-                {{ equipment.equipment_year || '-' }}
-              </template>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span :class="getMaintenanceStatusClass(equipment.maintenance_count)">
-                {{ equipment.maintenance_count }} template{{ equipment.maintenance_count !== 1 ? 's' : '' }}
-              </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ formatDate(equipment.created_at) || '-' }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <div class="flex space-x-2">
-                <button
-                  @click="viewTemplates(equipment)"
-                  :disabled="isEditing(equipment)"
-                  class="p-1 text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="View Templates"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                </button>
-                
-                <template v-if="isEditing(equipment)">
-                  <button
-                    @click="saveEquipment(equipment)"
-                    :disabled="isUpdating"
-                    class="p-1 text-green-600 hover:text-green-800 disabled:opacity-50"
-                    title="Save"
-                  >
-                    <svg v-if="!isUpdating" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  </button>
-                  <button
-                    @click="cancelEdit()"
-                    :disabled="isUpdating"
-                    class="p-1 text-gray-600 hover:text-gray-800 disabled:opacity-50"
-                    title="Cancel"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </template>
-                
-                <template v-else>
-                  <button
-                    @click="startEdit(equipment)"
-                    class="p-1 text-gray-600 hover:text-emerald-600"
-                    title="Edit"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                </template>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-        </table>
-      </div>
-
-      <!-- Empty State -->
-      <div v-if="filteredEquipment.length === 0" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+    <!-- Empty State -->
+    <div v-else-if="templates.length === 0" class="card">
+      <div class="card-body text-center py-12">
+        <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">No maintenance templates found</h3>
-        <p class="mt-1 text-sm text-gray-500">
-          {{ Object.keys(filters).some(key => filters[key]) ? 'Try adjusting your filters.' : 'Get started by creating equipment maintenance templates.' }}
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No Templates Found</h3>
+        <p class="text-gray-600">
+          {{ searchQuery || Object.values(filters).some(v => v) ? 'Try adjusting your filters' : 'No maintenance templates have been created yet' }}
         </p>
       </div>
+    </div>
 
-      <!-- Pagination -->
-      <div v-if="filteredEquipment.length > 0" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-        <!-- Mobile pagination info -->
-        <div class="flex-1 flex justify-between sm:hidden">
-          <button
-            @click="goToPreviousPage"
-            :disabled="currentPage === 1"
-            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
-          <button
-            @click="goToNextPage"
-            :disabled="currentPage === totalPages"
-            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next
-          </button>
-        </div>
+    <!-- Templates Cards -->
+    <div v-else class="space-y-4">
+      <div
+        v-for="template in templates"
+        :key="template.id"
+        class="card hover:shadow-lg transition-shadow duration-200"
+      >
+        <div class="card-body">
+          <!-- Header: Equipment Info -->
+          <div class="flex items-start justify-between">
+            <!-- Left: Equipment Identity -->
+            <div class="flex-1">
+              <div class="flex items-center space-x-3">
+                <!-- Equipment Icon -->
+                <div class="flex-shrink-0">
+                  <div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m4.5 4.5V19.5a2.25 2.25 0 0 0 2.25 2.25h2.25a2.25 2.25 0 0 0 2.25-2.25v-.75m-6 0a2.25 2.25 0 0 1-2.25-2.25v-.75m6 0V15a2.25 2.25 0 0 1 2.25-2.25h.75m-6 0a2.25 2.25 0 0 0-2.25 2.25v.75m6 0a2.25 2.25 0 0 0 2.25-2.25V15" />
+                    </svg>
+                  </div>
+                </div>
 
-        <!-- Desktop pagination -->
-        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-          <div>
-            <p class="text-sm text-gray-700">
-              Showing
-              <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span>
-              to
-              <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, filteredEquipment.length) }}</span>
-              of
-              <span class="font-medium">{{ filteredEquipment.length }}</span>
-              results
-            </p>
-          </div>
-          <div>
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <!-- Previous button -->
+                <!-- Equipment Details -->
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900">
+                    {{ getEquipmentDisplayName(template.equipment) }}
+                  </h3>
+                  <p v-if="getEquipmentSubtitle(template.equipment)" class="text-sm text-gray-500 mt-0.5">
+                    {{ getEquipmentSubtitle(template.equipment) }}
+                  </p>
+                  <div class="flex items-center space-x-2 mt-1">
+                    <span class="text-xs text-gray-400">
+                      Created {{ formatDate(template.created_at) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Task Count & Actions -->
+            <div class="flex items-center space-x-4">
+              <!-- Task Count Badge -->
+              <div class="text-right">
+                <p class="text-xs text-gray-500 font-medium">Tasks</p>
+                <div class="flex items-center space-x-2 mt-1">
+                  <span :class="getTaskCountBadgeClass(template.task_count)" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold">
+                    {{ template.task_count }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- View Tasks Button -->
               <button
-                @click="goToPreviousPage"
-                :disabled="currentPage === 1"
-                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                @click="toggleExpand(template.id)"
+                class="btn btn-secondary flex items-center space-x-2"
               >
-                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                <span>{{ expandedTemplates.has(template.id) ? 'Hide' : 'View' }} Tasks</span>
+                <svg
+                  class="w-4 h-4 transition-transform duration-200"
+                  :class="{ 'rotate-180': expandedTemplates.has(template.id) }"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
 
-              <!-- Page numbers -->
-              <template v-for="page in Math.min(totalPages, 7)" :key="page">
-                <button
-                  v-if="page === 1 || page === totalPages || (page >= currentPage - 2 && page <= currentPage + 2)"
-                  @click="goToPage(page)"
-                  :class="[
-                    page === currentPage
-                      ? 'z-10 bg-emerald-50 border-emerald-500 text-emerald-600'
-                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
-                    'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
-                  ]"
-                >
-                  {{ page }}
+              <!-- Actions Menu -->
+              <div class="relative">
+                <button class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                  </svg>
                 </button>
-                <span
-                  v-else-if="(page === 2 && currentPage > 4) || (page === totalPages - 1 && currentPage < totalPages - 3)"
-                  class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
-                >
-                  ...
-                </span>
-              </template>
-
-              <!-- Next button -->
-              <button
-                @click="goToNextPage"
-                :disabled="currentPage === totalPages"
-                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                </svg>
-              </button>
-            </nav>
+              </div>
+            </div>
           </div>
+
+          <!-- Expandible: Tasks List -->
+          <transition
+            enter-active-class="transition ease-out duration-200"
+            enter-from-class="opacity-0 -translate-y-2"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition ease-in duration-150"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-2"
+          >
+            <div v-if="expandedTemplates.has(template.id)" class="mt-6 pt-6 border-t border-gray-200">
+              <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center">
+                <svg class="w-4 h-4 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Maintenance Tasks ({{ template.task_count }})
+              </h4>
+
+              <div class="space-y-2">
+                <div
+                  v-for="task in template.tasks"
+                  :key="task.id"
+                  class="flex items-center justify-between py-3 px-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <div class="flex items-start space-x-3 flex-1">
+                    <!-- Task Check Icon -->
+                    <div class="flex-shrink-0 mt-0.5">
+                      <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+
+                    <!-- Task Details -->
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-gray-900">
+                        {{ task.name }}
+                      </p>
+                      <p v-if="task.description" class="text-xs text-gray-500 mt-1">
+                        {{ task.description }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Intervals -->
+                  <div class="flex items-center space-x-4 ml-4">
+                    <div class="flex flex-wrap gap-2">
+                      <span
+                        v-for="(interval, index) in task.intervals"
+                        :key="index"
+                        class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800"
+                      >
+                        {{ formatInterval(interval) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </transition>
         </div>
       </div>
     </div>
 
-    <!-- Templates Modal -->
-    <MaintenanceTemplatesModal
-      v-if="showTemplatesModal"
-      :equipment="selectedEquipment"
-      @close="closeTemplatesModal"
+    <!-- Pagination -->
+    <PaginationBar
+      v-if="templates.length > 0"
+      v-model="paginationModel"
+      :total-items="pagination.total"
+      :total-pages="pagination.totalPages"
+      @change="handlePaginationChange"
+    />
+
+    <!-- Bulk Import Modal -->
+    <BulkImportModal
+      :is-open="showBulkImportModal"
+      @close="showBulkImportModal = false"
+      @import-complete="handleImportComplete"
     />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { maintenanceApi } from '@/services/maintenanceApi'
-import { catalogApi } from '@/services/catalogApi'
-import { formatDate } from '@/utils/formatters'
-import MaintenanceTemplatesModal from '@/components/maintenance/MaintenanceTemplatesModal.vue'
+import { catalogsApi } from '@/services/catalogsApi'
+import SearchInput from '@/components/shared/SearchInput.vue'
+import AutocompleteSelect from '@/components/shared/AutocompleteSelect.vue'
+import PaginationBar from '@/components/shared/PaginationBar.vue'
+import BulkImportModal from '@/components/maintenance/BulkImportModal.vue'
 
-const router = useRouter()
+// State
+const showBulkImportModal = ref(false)
+const templates = ref([])
+const loading = ref(false)
+const error = ref('')
+const searchQuery = ref('')
+const expandedTemplates = ref(new Set())
 
-// Reactive state
-const equipment = ref([])
-const filteredEquipment = ref([])
-const isLoading = ref(true)
-const error = ref(null)
-const showTemplatesModal = ref(false)
-const selectedEquipment = ref(null)
-
-// Inline editing state
-const editingEquipment = ref(null)
-const editingData = ref({})
-const isUpdating = ref(false)
-const catalogOptions = ref({
-  types: [],
-  makes: [],
-  models: [],
-  trims: []
-})
-
-// Pagination
-const currentPage = ref(1)
-const itemsPerPage = ref(10)
-const totalPages = computed(() => Math.ceil(filteredEquipment.value.length / itemsPerPage.value))
-const paginatedEquipment = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  const end = start + itemsPerPage.value
-  return filteredEquipment.value.slice(start, end)
-})
+// Labels for autocomplete
+const selectedTypeLabel = ref('')
+const selectedMakeLabel = ref('')
+const selectedModelLabel = ref('')
 
 // Filters
 const filters = reactive({
-  equipment_type: '',
-  equipment_make: '',
-  equipment_model: '',
-  equipment_trim: ''
+  equipment_type_id: '',
+  equipment_make_id: '',
+  equipment_model_id: ''
 })
 
-// Filter options (computed from data)
-const filterOptions = computed(() => {
-  const options = {
-    types: [...new Set(equipment.value.map(e => e.equipment_type_name).filter(Boolean))].sort(),
-    makes: [...new Set(equipment.value.map(e => e.equipment_make_name).filter(Boolean))].sort(),
-    models: [...new Set(equipment.value.map(e => e.equipment_model_name).filter(Boolean))].sort(),
-    trims: [...new Set(equipment.value.map(e => e.equipment_trim_name).filter(Boolean))].sort()
+// Pagination
+const pagination = reactive({
+  page: 1,
+  limit: 25,
+  total: 0,
+  totalPages: 0
+})
+
+const paginationModel = computed({
+  get: () => ({
+    page: pagination.page,
+    limit: pagination.limit
+  }),
+  set: (value) => {
+    pagination.page = value.page
+    pagination.limit = value.limit
   }
-  return options
 })
 
-// Load equipment data
-const loadEquipment = async () => {
+// Fetch functions for AutocompleteSelect
+const fetchTypes = async (searchQuery) => {
   try {
-    isLoading.value = true
-    error.value = null
-    
-    const response = await maintenanceApi.getEquipmentWithMaintenanceTemplates()
-    
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to load equipment templates')
+    const params = {
+      search: searchQuery,
+      limit: 20,
+      sort: 'name',
+      order: 'asc'
     }
-    
-    equipment.value = response.data
-    applyFilters()
+    const response = await catalogsApi.getEquipmentTypes(params)
+    return response.success ? response.data : []
   } catch (err) {
-    console.error('Error loading equipment:', err)
-    error.value = err.userMessage || err.message
+    console.error('Failed to fetch types:', err)
+    return []
+  }
+}
+
+const fetchMakes = async (searchQuery) => {
+  try {
+    const params = {
+      search: searchQuery,
+      limit: 20,
+      sort: 'name',
+      order: 'asc'
+    }
+    const response = await catalogsApi.getEquipmentMakes(params)
+    return response.success ? response.data : []
+  } catch (err) {
+    console.error('Failed to fetch makes:', err)
+    return []
+  }
+}
+
+const fetchModels = async (searchQuery) => {
+  try {
+    const params = {
+      search: searchQuery,
+      limit: 20,
+      sort: 'name',
+      order: 'asc'
+    }
+
+    if (filters.equipment_make_id) {
+      params.equipment_make_id = filters.equipment_make_id
+    }
+
+    const response = await catalogsApi.getEquipmentModels(params)
+    return response.success ? response.data : []
+  } catch (err) {
+    console.error('Failed to fetch models:', err)
+    return []
+  }
+}
+
+// Select handlers
+const handleTypeSelect = (option) => {
+  selectedTypeLabel.value = option ? option.name : ''
+}
+
+const handleMakeSelect = (option) => {
+  selectedMakeLabel.value = option ? option.name : ''
+}
+
+const handleModelSelect = (option) => {
+  selectedModelLabel.value = option ? option.name : ''
+}
+
+// Change handlers
+const handleTypeChange = (value) => {
+  filters.equipment_type_id = value
+  if (!value) selectedTypeLabel.value = ''
+  pagination.page = 1
+  loadTemplates()
+}
+
+const handleMakeChange = (value) => {
+  filters.equipment_make_id = value
+  if (!value) {
+    selectedMakeLabel.value = ''
+    filters.equipment_model_id = ''
+    selectedModelLabel.value = ''
+  }
+  pagination.page = 1
+  loadTemplates()
+}
+
+const handleModelChange = (value) => {
+  filters.equipment_model_id = value
+  if (!value) selectedModelLabel.value = ''
+  pagination.page = 1
+  loadTemplates()
+}
+
+const handleSearch = () => {
+  pagination.page = 1
+  loadTemplates()
+}
+
+const handlePaginationChange = (newPagination) => {
+  pagination.page = newPagination.page
+  pagination.limit = newPagination.limit
+  loadTemplates()
+}
+
+// Load templates
+const loadTemplates = async () => {
+  loading.value = true
+  error.value = ''
+
+  try {
+    const params = {
+      page: pagination.page,
+      limit: pagination.limit,
+      sort: 'type_name',
+      order: 'asc'
+    }
+
+    if (searchQuery.value) {
+      params.search = searchQuery.value
+    }
+    if (filters.equipment_type_id) {
+      params.type_id = filters.equipment_type_id
+    }
+    if (filters.equipment_make_id) {
+      params.make_id = filters.equipment_make_id
+    }
+    if (filters.equipment_model_id) {
+      params.model_id = filters.equipment_model_id
+    }
+
+    const response = await maintenanceApi.getMaintenanceTemplates(params)
+
+    if (response.success) {
+      templates.value = response.data
+      pagination.total = response.pagination?.total || 0
+      pagination.totalPages = response.pagination?.total_pages || 0
+    } else {
+      throw new Error(response.message || 'Failed to load templates')
+    }
+  } catch (err) {
+    console.error('Failed to load templates:', err)
+    error.value = err.userMessage || err.message || 'Failed to load maintenance templates'
+    templates.value = []
   } finally {
-    isLoading.value = false
+    loading.value = false
   }
 }
 
-// Apply filters
-const applyFilters = () => {
-  filteredEquipment.value = equipment.value.filter(item => {
-    return (
-      (!filters.equipment_type || item.equipment_type_name === filters.equipment_type) &&
-      (!filters.equipment_make || item.equipment_make_name === filters.equipment_make) &&
-      (!filters.equipment_model || item.equipment_model_name === filters.equipment_model) &&
-      (!filters.equipment_trim || item.equipment_trim_name === filters.equipment_trim)
-    )
-  })
-  // Reset to first page when filters change
-  currentPage.value = 1
-}
-
-// Clear all filters
-const clearFilters = () => {
-  filters.equipment_type = ''
-  filters.equipment_make = ''
-  filters.equipment_model = ''
-  filters.equipment_trim = ''
-  currentPage.value = 1
-  applyFilters()
-}
-
-// Pagination functions
-const goToPage = (page) => {
-  if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page
-  }
-}
-
-const goToFirstPage = () => goToPage(1)
-const goToLastPage = () => goToPage(totalPages.value)
-const goToPreviousPage = () => goToPage(currentPage.value - 1)
-const goToNextPage = () => goToPage(currentPage.value + 1)
-
-// Inline editing functions
-const isEditing = (equipment) => {
-  return editingEquipment.value && 
-         editingEquipment.value._equipment_type_id === equipment._equipment_type_id &&
-         editingEquipment.value._equipment_id === equipment._equipment_id
-}
-
-const startEdit = (equipment) => {
-  editingEquipment.value = equipment
-  editingData.value = {
-    equipment_type_name: equipment.equipment_type_name || '',
-    equipment_make_name: equipment.equipment_make_name || '',
-    equipment_model_name: equipment.equipment_model_name || '',
-    equipment_trim_name: equipment.equipment_trim_name || '',
-    equipment_year: equipment.equipment_year || ''
-  }
-  loadCatalogOptions()
-}
-
-const cancelEdit = () => {
-  editingEquipment.value = null
-  editingData.value = {}
-}
-
-const saveEquipment = async (equipment) => {
-  try {
-    isUpdating.value = true
-    error.value = null
-    
-    // Get the first task series ID (we need at least one to update)
-    const taskSeriesId = equipment.task_series_ids?.[0]
-    
-    if (!taskSeriesId) {
-      throw new Error('No task series ID found for this equipment')
-    }
-    
-    // Validate that we have all required names
-    if (!editingData.value.equipment_type_name || !editingData.value.equipment_make_name || !editingData.value.equipment_model_name) {
-      throw new Error('Please select valid equipment type, make, and model before saving')
-    }
-    
-    // Call the validation API with the equipment data (using names)
-    const response = await maintenanceApi.validateAndUpdateEquipment(taskSeriesId, {
-      equipment_type_name: editingData.value.equipment_type_name,
-      equipment_make_name: editingData.value.equipment_make_name,
-      equipment_model_name: editingData.value.equipment_model_name,
-      equipment_trim_name: editingData.value.equipment_trim_name || null,
-      equipment_year: editingData.value.equipment_year || null
-    })
-    
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to update equipment')
-    }
-    
-    // Success - reload equipment data to show updates
-    await loadEquipment()
-    cancelEdit()
-    
-    // Show success message
-    console.log('Equipment updated successfully:', response.message)
-    
-  } catch (error) {
-    console.error('Error saving equipment:', error)
-    error.value = error.userMessage || error.message || 'Failed to save equipment changes'
-  } finally {
-    isUpdating.value = false
-  }
-}
-
-const loadCatalogOptions = async () => {
-  try {
-    // For now using the existing filter options as a starting point
-    catalogOptions.value = {
-      types: filterOptions.value.types,
-      makes: filterOptions.value.makes,
-      models: filterOptions.value.models,
-      trims: filterOptions.value.trims
-    }
-  } catch (error) {
-    console.error('Error loading catalog options:', error)
-  }
-}
-
-// Load models when make changes
-const loadModelsForMake = async (makeId) => {
-  try {
-    const response = await catalogApi.getEquipmentModelsByMake(makeId)
-    catalogOptions.value.models = response.data || []
-    // Clear trims when make changes
-    catalogOptions.value.trims = []
-  } catch (error) {
-    console.error('Error loading models:', error)
-  }
-}
-
-// Load trims when model changes
-const loadTrimsForModel = async (makeId, modelId) => {
-  try {
-    const response = await catalogApi.getEquipmentTrimsByModel(makeId, modelId)
-    catalogOptions.value.trims = response.data || []
-  } catch (error) {
-    console.error('Error loading trims:', error)
-  }
-}
-
-// Handle make change
-const onMakeChange = async () => {
-  editingData.value.equipment_model_id = ''
-  editingData.value.equipment_trim_id = ''
-  catalogOptions.value.models = []
-  catalogOptions.value.trims = []
-  
-  if (editingData.value.equipment_make_id) {
-    await loadModelsForMake(editingData.value.equipment_make_id)
-  }
-}
-
-// Handle model change
-const onModelChange = async () => {
-  editingData.value.equipment_trim_id = ''
-  catalogOptions.value.trims = []
-  
-  if (editingData.value.equipment_make_id && editingData.value.equipment_model_id) {
-    await loadTrimsForModel(editingData.value.equipment_make_id, editingData.value.equipment_model_id)
-  }
-}
-
-// Find equipment IDs based on names
-const findEquipmentIds = async (equipment) => {
-  try {
-    // Find make ID by name
-    if (equipment.equipment_make_name) {
-      const make = catalogOptions.value.makes.find(m => m.name === equipment.equipment_make_name)
-      if (make) {
-        editingData.value.equipment_make_id = make.id
-        
-        // Load models for this make
-        await loadModelsForMake(make.id)
-        
-        // Find model ID by name
-        if (equipment.equipment_model_name) {
-          const model = catalogOptions.value.models.find(m => m.name === equipment.equipment_model_name)
-          if (model) {
-            editingData.value.equipment_model_id = model.id
-            
-            // Load trims for this model
-            await loadTrimsForModel(make.id, model.id)
-            
-            // Find trim ID by name
-            if (equipment.equipment_trim_name) {
-              const trim = catalogOptions.value.trims.find(t => t.name === equipment.equipment_trim_name)
-              if (trim) {
-                editingData.value.equipment_trim_id = trim.id
-              }
-            }
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error finding equipment IDs:', error)
-  }
-}
-
-// Get maintenance status styling
-const getMaintenanceStatusClass = (count) => {
-  if (count === 0) {
-    return 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800'
-  } else if (count <= 3) {
-    return 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800'
+// Toggle expand/collapse
+const toggleExpand = (templateId) => {
+  if (expandedTemplates.value.has(templateId)) {
+    expandedTemplates.value.delete(templateId)
   } else {
-    return 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800'
+    expandedTemplates.value.add(templateId)
   }
 }
 
-// Note: formatDate is now imported from @/utils/formatters
+// Helper functions
+const getEquipmentDisplayName = (equipment) => {
+  const parts = [equipment.type_name]
 
-// View templates action
-const viewTemplates = (equipment) => {
-  selectedEquipment.value = equipment
-  showTemplatesModal.value = true
+  if (equipment.make_name) {
+    parts.push('-', equipment.make_name)
+  }
+  if (equipment.model_name) {
+    parts.push(equipment.model_name)
+  }
+
+  return parts.join(' ')
 }
 
+const getEquipmentSubtitle = (equipment) => {
+  const parts = []
 
-// Close templates modal
-const closeTemplatesModal = () => {
-  showTemplatesModal.value = false
-  selectedEquipment.value = null
+  if (equipment.year) {
+    parts.push(equipment.year)
+  }
+  if (equipment.trim_name) {
+    parts.push(equipment.trim_name)
+  }
+
+  return parts.length > 0 ? parts.join(' • ') : null
 }
 
-// Initialize
-onMounted(async () => {
-  await loadEquipment()
+const formatInterval = (interval) => {
+  const unitMap = {
+    hours: 'hrs',
+    km: 'km',
+    miles: 'mi',
+    months: 'mo',
+    years: 'yr'
+  }
+
+  return `${interval.value} ${unitMap[interval.unit] || interval.unit}`
+}
+
+const getTaskCountBadgeClass = (count) => {
+  if (count === 0) {
+    return 'bg-red-100 text-red-800'
+  } else if (count <= 5) {
+    return 'bg-yellow-100 text-yellow-800'
+  } else if (count <= 10) {
+    return 'bg-blue-100 text-blue-800'
+  } else {
+    return 'bg-emerald-100 text-emerald-800'
+  }
+}
+
+const getPriorityClass = (priority) => {
+  const classes = {
+    high: 'bg-red-100 text-red-800',
+    medium: 'bg-yellow-100 text-yellow-800',
+    low: 'bg-gray-100 text-gray-800'
+  }
+  return classes[priority] || 'bg-gray-100 text-gray-800'
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffTime = Math.abs(now - date)
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  if (diffDays === 0) return 'today'
+  if (diffDays === 1) return 'yesterday'
+  if (diffDays < 7) return `${diffDays} days ago`
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`
+  return date.toLocaleDateString()
+}
+
+// Bulk Import Handler
+const handleImportComplete = () => {
+  showBulkImportModal.value = false
+  loadTemplates() // Reload templates to show newly imported ones
+}
+
+// Lifecycle
+onMounted(() => {
+  loadTemplates()
 })
 </script>
-
-<style scoped>
-.maintenance-view {
-  @apply max-w-7xl mx-auto;
-}
-</style>
