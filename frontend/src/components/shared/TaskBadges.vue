@@ -108,7 +108,7 @@ const formatTaskType = (type) => {
 .badge-group {
   display: flex;
   align-items: center;
-  cursor: help;
+  cursor: default;
   transition: all 0.2s ease;
 }
 
