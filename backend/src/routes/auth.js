@@ -4,6 +4,7 @@ const router = express.Router();
 const AuthClient = require('../clients/authClient');
 const UserService = require('../services/userService');
 const { verifyToken, requireAuth } = require('../middleware/auth');
+const { getSupabaseClient } = require('../clients/supabaseClient');
 
 const {
   asyncHandler,
@@ -24,30 +25,33 @@ router.post('/login', asyncHandler(async (req, res) => {
   }
   
   try {
-    // Authenticate with Supabase
-    const { user, session } = await AuthClient.login(email, password);
-    
+    // Authenticate with Supabase using the request's environment config
+    const { user, session } = await AuthClient.login(email, password, req);
+
     if (!user || !session) {
       throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
     }
-    
+
+    // Get Supabase client for this request's environment
+    const supabase = getSupabaseClient(req);
+
     // Get or create user profile
     let userProfile;
     try {
-      userProfile = await UserService.getUserWithRoles(user.id);
+      userProfile = await UserService.getUserWithRoles(user.id, supabase);
     } catch (error) {
       // If user profile doesn't exist, create it
       if (error.code === 'PGRST116') { // No rows found
         userProfile = await UserService.createUserProfile(user.id, {
           global_role: 'regular_user'
-        });
+        }, supabase);
       } else {
         throw error;
       }
     }
-    
+
     // Update last login
-    await UserService.updateLastLogin(user.id);
+    await UserService.updateLastLogin(user.id, supabase);
     
     // Return user data with token
     res.json({
@@ -85,14 +89,17 @@ router.post('/refresh', asyncHandler(async (req, res) => {
   }
   
   try {
-    const { session, user } = await AuthClient.refreshToken(refresh_token);
-    
+    const { session, user } = await AuthClient.refreshToken(refresh_token, req);
+
     if (!session || !user) {
       throw new AppError('Invalid refresh token', 401, 'INVALID_REFRESH_TOKEN');
     }
-    
+
+    // Get Supabase client for this request's environment
+    const supabase = getSupabaseClient(req);
+
     // Get user profile
-    const userProfile = await UserService.getUserWithRoles(user.id);
+    const userProfile = await UserService.getUserWithRoles(user.id, supabase);
     
     res.json({
       success: true,
@@ -139,7 +146,7 @@ router.post('/logout', asyncHandler(async (req, res) => {
       const token = authHeader.substring(7);
       // Try to get user info from token (even if expired)
       try {
-        const { user } = await AuthClient.verifyToken(token);
+        const { user } = await AuthClient.verifyToken(token, req);
         if (user) {
           console.log(`User ${user.id} logged out successfully`);
         }
@@ -150,7 +157,7 @@ router.post('/logout', asyncHandler(async (req, res) => {
     }
 
     // Always perform logout operation
-    await AuthClient.logout();
+    await AuthClient.logout(null, req);
 
     res.json({
       success: true,
@@ -179,8 +186,11 @@ router.put('/profile', verifyToken, requireAuth, asyncHandler(async (req, res) =
   if (Object.keys(updates).length === 0) {
     throw new AppError('No valid fields to update', 400, 'NO_UPDATES');
   }
-  
-  const updatedUser = await UserService.updateUserProfile(req.user.id, updates);
+
+  // Get Supabase client for this request's environment
+  const supabase = getSupabaseClient(req);
+
+  const updatedUser = await UserService.updateUserProfile(req.user.id, updates, supabase);
   
   res.json({
     success: true,
@@ -205,7 +215,7 @@ router.post('/change-password', verifyToken, requireAuth, asyncHandler(async (re
   
   try {
     // First verify current password by attempting login
-    await AuthClient.login(req.user.email, current_password);
+    await AuthClient.login(req.user.email, current_password, req);
     
     // Update password (this would require admin privileges or user context)
     // For now, we'll throw an error as this requires special handling

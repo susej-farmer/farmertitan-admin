@@ -13,9 +13,12 @@
       <form class="mt-8 space-y-6" @submit.prevent="handleLogin">
         <input type="hidden" name="remember" value="true" />
         
-        <div class="rounded-md shadow-sm -space-y-px">
+        <div class="space-y-4">
+          <!-- Email Field -->
           <div>
-            <label for="email" class="sr-only">Email address</label>
+            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+              Email address
+            </label>
             <input
               id="email"
               v-model="form.email"
@@ -23,20 +26,23 @@
               type="email"
               autocomplete="email"
               required
-              class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 focus:z-10 sm:text-sm"
-              :class="{ 
+              class="block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+              :class="{
                 'border-red-300 focus:border-red-500 focus:ring-red-500': form.errors.email,
-                'border-gray-300': !form.errors.email 
+                'border-gray-300': !form.errors.email
               }"
-              placeholder="Email address"
+              placeholder="Enter your email"
             />
             <div v-if="form.errors.email" class="mt-1 text-xs text-red-600">
               {{ form.errors.email }}
             </div>
           </div>
-          
+
+          <!-- Password Field -->
           <div>
-            <label for="password" class="sr-only">Password</label>
+            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
             <input
               id="password"
               v-model="form.password"
@@ -44,16 +50,39 @@
               type="password"
               autocomplete="current-password"
               required
-              class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 focus:z-10 sm:text-sm"
-              :class="{ 
+              class="block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+              :class="{
                 'border-red-300 focus:border-red-500 focus:ring-red-500': form.errors.password,
-                'border-gray-300': !form.errors.password 
+                'border-gray-300': !form.errors.password
               }"
-              placeholder="Password"
+              placeholder="Enter your password"
             />
             <div v-if="form.errors.password" class="mt-1 text-xs text-red-600">
               {{ form.errors.password }}
             </div>
+          </div>
+
+          <!-- Environment Selector -->
+          <div>
+            <label for="environment" class="block text-sm font-medium text-gray-700 mb-1">
+              Environment
+            </label>
+            <select
+              id="environment"
+              v-model="form.environment"
+              class="block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+            >
+              <option
+                v-for="env in ENVIRONMENT_LIST"
+                :key="env.id"
+                :value="env.id"
+              >
+                {{ env.icon }} {{ env.displayName }}
+              </option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500">
+              Select which environment to connect to
+            </p>
           </div>
         </div>
 
@@ -102,31 +131,35 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useEnvironment } from '@/composables/useEnvironment'
+import { ENVIRONMENT_LIST } from '@/config/environments'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { setEnvironment, environmentId } = useEnvironment()
 
 const form = reactive({
   email: '',
   password: '',
+  environment: environmentId.value, // Initialize with current environment
   errors: {}
 })
 
 const validateForm = () => {
   form.errors = {}
-  
+
   if (!form.email) {
     form.errors.email = 'Email is required'
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
     form.errors.email = 'Please enter a valid email address'
   }
-  
+
   if (!form.password) {
     form.errors.password = 'Password is required'
   } else if (form.password.length < 6) {
     form.errors.password = 'Password must be at least 6 characters'
   }
-  
+
   return Object.keys(form.errors).length === 0
 }
 
@@ -134,13 +167,17 @@ const handleLogin = async () => {
   if (!validateForm()) {
     return
   }
-  
+
   try {
+    // Set the environment BEFORE login
+    // This ensures the login request has the correct X-Environment header
+    setEnvironment(form.environment)
+
     await authStore.login({
       email: form.email,
       password: form.password
     })
-    
+
     // Redirect to the intended page or dashboard
     const redirectPath = router.currentRoute.value.query.redirect || '/'
     router.push(redirectPath)

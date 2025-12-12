@@ -1,17 +1,8 @@
-const { createClient } = require('@supabase/supabase-js');
+const dbConnection = require('../database/connection');
 
 class EquipmentCatalogClient {
   constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
+    this.supabase = dbConnection.getClient();
   }
 
   static async findAll(options = {}) {

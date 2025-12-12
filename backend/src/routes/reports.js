@@ -83,7 +83,7 @@ router.get('/system-stats',
   verifyToken,
   requireAuth,
   asyncHandler(async (req, res) => {
-    const result = await SystemStatsService.getSystemStats();
+    const result = await SystemStatsService.getSystemStats(req);
     res.json(result);
   })
 );

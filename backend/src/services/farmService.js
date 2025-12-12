@@ -9,7 +9,7 @@ class FarmService {
 
       // Call the client to get data
       const result = await FarmClient.getAll(validatedOptions);
-      
+
       // Apply any business logic transformations here if needed
       return result;
     } catch (error) {
@@ -51,12 +51,12 @@ class FarmService {
     try {
       // Validate input data
       this.validateCreateData(farmData);
-      
+
       // Check business rules
       await this.checkBusinessRulesForCreate(farmData);
-      
+
       const newFarm = await FarmClient.create(farmData);
-      
+
       // Apply any post-creation business logic here if needed
       return newFarm;
     } catch (error) {
@@ -71,14 +71,14 @@ class FarmService {
       if (!id) {
         throw new AppError('Farm ID is required', 400, 'MISSING_ID');
       }
-      
+
       this.validateUpdateData(updateData);
-      
+
       // Check business rules
       await this.checkBusinessRulesForUpdate(id, updateData);
-      
+
       const updatedFarm = await FarmClient.update(id, updateData);
-      
+
       // Apply any post-update business logic here if needed
       return updatedFarm;
     } catch (error) {
@@ -93,12 +93,12 @@ class FarmService {
       if (!id) {
         throw new AppError('Farm ID is required', 400, 'MISSING_ID');
       }
-      
+
       // Check business rules for deletion
       await this.checkBusinessRulesForDelete(id);
-      
+
       const result = await FarmClient.delete(id);
-      
+
       // Apply any post-deletion business logic here if needed
       return result;
     } catch (error) {
@@ -113,12 +113,12 @@ class FarmService {
       if (!id) {
         throw new AppError('Farm ID is required', 400, 'MISSING_ID');
       }
-      
+
       // Check business rules for activation
       await this.checkBusinessRulesForActivation(id);
-      
+
       const activatedFarm = await FarmClient.activate(id);
-      
+
       // Apply any post-activation business logic here if needed
       return activatedFarm;
     } catch (error) {
@@ -133,12 +133,12 @@ class FarmService {
       if (!id) {
         throw new AppError('Farm ID is required', 400, 'MISSING_ID');
       }
-      
+
       // Check business rules for deactivation
       await this.checkBusinessRulesForDeactivation(id);
-      
+
       const deactivatedFarm = await FarmClient.deactivate(id);
-      
+
       // Apply any post-deactivation business logic here if needed
       return deactivatedFarm;
     } catch (error) {
@@ -152,7 +152,7 @@ class FarmService {
       if (!name || !name.trim()) {
         throw new AppError('Name is required for uniqueness check', 400, 'MISSING_NAME');
       }
-      
+
       return await FarmClient.checkNameUnique(name.trim(), excludeId);
     } catch (error) {
       console.error('Error in FarmService.checkNameUnique:', error);
@@ -163,7 +163,7 @@ class FarmService {
   static async getStatistics() {
     try {
       const stats = await FarmClient.getStatistics();
-      
+
       // Apply any business logic transformations to statistics here if needed
       return stats;
     } catch (error) {
@@ -266,7 +266,7 @@ class FarmService {
 
   static async checkBusinessRulesForCreate(farmData) {
     // Check name uniqueness
-    const isUnique = await FarmClient.checkNameUnique(farmData.name);
+    const isUnique = await FarmClient.checkNameUnique(farmData.name, null);
     if (!isUnique) {
       throw new AppError('Farm name already exists', 409, 'DUPLICATE_NAME');
     }
@@ -285,7 +285,7 @@ class FarmService {
   static async checkBusinessRulesForDelete(id) {
     // Check if farm exists first
     await FarmClient.findById(id);
-    
+
     // Add business rules for deletion here if needed
     // For example: check if farm has active equipment, users, etc.
   }
@@ -293,7 +293,7 @@ class FarmService {
   static async checkBusinessRulesForActivation(id) {
     // Check if farm exists first
     const farm = await FarmClient.findById(id);
-    
+
     // Add business rules for activation here if needed
     // For example: check if farm has required data before activation
   }
@@ -301,7 +301,7 @@ class FarmService {
   static async checkBusinessRulesForDeactivation(id) {
     // Check if farm exists first
     const farm = await FarmClient.findById(id);
-    
+
     // Add business rules for deactivation here if needed
     // For example: check if farm has active operations before deactivation
   }

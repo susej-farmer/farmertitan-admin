@@ -167,9 +167,10 @@ router.post('/maintenance-templates',
       // Llamar al servicio para procesar el CSV
       const result = await DefaultTaskImportService.importDefaultTasksFromCSV(tempFilePath);
 
-      // Retornar respuesta con detalle de éxitos y errores
+      // Retornar respuesta en formato esperado por el frontend
       res.status(200).json({
         success: true,
+        message: `Processed ${result.total} rows: ${result.successful.length} successful, ${result.failed.length} failed`,
         data: {
           summary: {
             total: result.total,
@@ -178,8 +179,7 @@ router.post('/maintenance-templates',
           },
           successful: result.successful,
           failed: result.failed
-        },
-        message: `Processed ${result.total} rows: ${result.successful.length} successful, ${result.failed.length} failed`
+        }
       });
 
     } catch (error) {

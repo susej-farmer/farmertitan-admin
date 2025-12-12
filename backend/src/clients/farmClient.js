@@ -4,26 +4,26 @@ class FarmClient {
   static async create(data) {
     try {
       const { name, acres, metadata } = data;
-      
+
       const supabase = dbConnection.getClient();
-      
+
       const insertData = {
         name,
         acres,
         metadata: metadata || null
       };
-      
+
       const { data: farm, error } = await supabase
         .from('farm')
         .insert(insertData)
         .select()
         .single();
-        
+
       if (error) {
         console.error('Failed to create farm:', error);
         throw error;
       }
-      
+
       return farm;
     } catch (error) {
       console.error('Failed to create farm', error);
@@ -34,13 +34,13 @@ class FarmClient {
   static async get(id) {
     try {
       const supabase = dbConnection.getClient();
-      
+
       const { data: farm, error } = await supabase
         .from('farm')
         .select('*')
         .eq('id', id)
         .single();
-        
+
       if (error) {
         if (error.code === 'PGRST116') {
           return null;
@@ -48,7 +48,7 @@ class FarmClient {
         console.error('Failed to get farm:', error);
         throw error;
       }
-      
+
       return farm;
     } catch (error) {
       console.error('Failed to get farm', error);
@@ -113,24 +113,24 @@ class FarmClient {
   static async update(id, data) {
     try {
       const supabase = dbConnection.getClient();
-      
+
       const updateData = {};
       if (data.name !== undefined) updateData.name = data.name;
       if (data.acres !== undefined) updateData.acres = data.acres;
       if (data.metadata !== undefined) updateData.metadata = data.metadata;
-      
+
       const { data: farm, error } = await supabase
         .from('farm')
         .update(updateData)
         .eq('id', id)
         .select()
         .single();
-        
+
       if (error) {
         console.error('Failed to update farm:', error);
         throw error;
       }
-      
+
       return farm;
     } catch (error) {
       console.error('Failed to update farm', error);
@@ -138,20 +138,20 @@ class FarmClient {
     }
   }
 
-  static async delete(id) {
+  static async delete(id, req = null) {
     try {
-      const supabase = dbConnection.getClient();
-      
+      const supabase = dbConnection.getClient(req);
+
       const { error } = await supabase
         .from('farm')
         .delete()
         .eq('id', id);
-        
+
       if (error) {
         console.error('Failed to delete farm:', error);
         throw error;
       }
-      
+
       return true;
     } catch (error) {
       console.error('Failed to delete farm', error);
@@ -173,25 +173,25 @@ class FarmClient {
     return farm;
   }
 
-  static async checkNameUnique(name, excludeId = null) {
+  static async checkNameUnique(name, excludeId = null, req = null) {
     try {
-      const supabase = dbConnection.getClient();
-      
+      const supabase = dbConnection.getClient(req);
+
       let query = supabase
         .from('farm')
         .select('id')
         .eq('name', name);
-      
+
       if (excludeId) {
         query = query.neq('id', excludeId);
       }
-      
+
       const { data, error } = await query;
-      
+
       if (error) {
         throw error;
       }
-      
+
       return data.length === 0;
     } catch (error) {
       console.error('Failed to check farm name uniqueness', error);
@@ -202,19 +202,19 @@ class FarmClient {
   static async activate(id) {
     try {
       const supabase = dbConnection.getClient();
-      
+
       const { data: farm, error } = await supabase
         .from('farm')
         .update({ status: 'active' })
         .eq('id', id)
         .select()
         .single();
-        
+
       if (error) {
         console.error('Failed to activate farm:', error);
         throw error;
       }
-      
+
       return farm;
     } catch (error) {
       console.error('Failed to activate farm', error);
@@ -222,22 +222,22 @@ class FarmClient {
     }
   }
 
-  static async deactivate(id) {
+  static async deactivate(id, req = null) {
     try {
-      const supabase = dbConnection.getClient();
-      
+      const supabase = dbConnection.getClient(req);
+
       const { data: farm, error } = await supabase
         .from('farm')
         .update({ status: 'inactive' })
         .eq('id', id)
         .select()
         .single();
-        
+
       if (error) {
         console.error('Failed to deactivate farm:', error);
         throw error;
       }
-      
+
       return farm;
     } catch (error) {
       console.error('Failed to deactivate farm', error);

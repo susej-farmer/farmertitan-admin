@@ -14,7 +14,7 @@ const {
   AppError
 } = require('../middleware/errorHandler');
 
-const { verifyToken, requireAuth, optionalAuth } = require('../middleware/auth');
+const { verifyToken, requireAuth } = require('../middleware/auth');
 
 const {
   validateEquipmentType,
@@ -30,7 +30,9 @@ const {
 } = require('../middleware/validation');
 
 // Equipment Types Routes
-router.get('/equipment-types', 
+router.get('/equipment-types',
+  verifyToken,
+  requireAuth,
   validateEquipmentTypesQuery,
   asyncHandler(async (req, res) => {
     const result = await EquipmentTypeService.findAll(req.query);
@@ -43,6 +45,8 @@ router.get('/equipment-types',
 );
 
 router.get('/equipment-types/dropdown',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const types = await EquipmentTypeService.findForDropdown();
     res.json({
@@ -53,6 +57,8 @@ router.get('/equipment-types/dropdown',
 );
 
 router.get('/equipment-types/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const type = await EquipmentTypeService.findById(req.params.id);
@@ -64,14 +70,15 @@ router.get('/equipment-types/:id',
 );
 
 router.post('/equipment-types',
-  optionalAuth,
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     // Prepare user context
     const userContext = {
-      userId: req.user?.id || null,
-      farmId: req.user?.farm_roles?.[0]?.farm?.id || null
+      userId: req.user.id,
+      farmId: req.user.farm_roles?.[0]?.farm?.id || null
     };
-    
+
     const type = await EquipmentTypeService.create(req.body, userContext);
     res.status(201).json({
       success: true,
@@ -82,6 +89,8 @@ router.post('/equipment-types',
 );
 
 router.put('/equipment-types/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const type = await EquipmentTypeService.update(req.params.id, req.body);
@@ -94,6 +103,8 @@ router.put('/equipment-types/:id',
 );
 
 router.delete('/equipment-types/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const type = await EquipmentTypeService.delete(req.params.id);
@@ -106,6 +117,8 @@ router.delete('/equipment-types/:id',
 );
 
 router.get('/equipment-types/statistics',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const stats = await EquipmentTypeService.getStatistics();
     res.json({
@@ -117,6 +130,8 @@ router.get('/equipment-types/statistics',
 
 // Equipment Makes Routes
 router.get('/equipment-makes',
+  verifyToken,
+  requireAuth,
   validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const result = await EquipmentMakeService.findAll(req.query);
@@ -129,6 +144,8 @@ router.get('/equipment-makes',
 );
 
 router.get('/equipment-makes/dropdown',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const makes = await EquipmentMakeService.findForDropdown();
     res.json({
@@ -139,6 +156,8 @@ router.get('/equipment-makes/dropdown',
 );
 
 router.get('/equipment-makes/dropdown-with-models',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const makes = await EquipmentMakeService.findForDropdownWithModels();
     res.json({
@@ -149,6 +168,8 @@ router.get('/equipment-makes/dropdown-with-models',
 );
 
 router.get('/equipment-makes/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const make = await EquipmentMakeService.findById(req.params.id);
@@ -160,6 +181,8 @@ router.get('/equipment-makes/:id',
 );
 
 router.get('/equipment-makes/:id/models',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const models = await EquipmentMakeService.findModelsForMake(req.params.id);
@@ -171,14 +194,15 @@ router.get('/equipment-makes/:id/models',
 );
 
 router.post('/equipment-makes',
-  optionalAuth,
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     // Prepare user context
     const userContext = {
-      userId: req.user?.id || null,
-      farmId: req.user?.farm_roles?.[0]?.farm?.id || null
+      userId: req.user.id,
+      farmId: req.user.farm_roles?.[0]?.farm?.id || null
     };
-    
+
     const make = await EquipmentMakeService.create(req.body, userContext);
     res.status(201).json({
       success: true,
@@ -189,6 +213,8 @@ router.post('/equipment-makes',
 );
 
 router.put('/equipment-makes/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const make = await EquipmentMakeService.update(req.params.id, req.body);
@@ -201,6 +227,8 @@ router.put('/equipment-makes/:id',
 );
 
 router.delete('/equipment-makes/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const make = await EquipmentMakeService.delete(req.params.id);
@@ -214,6 +242,8 @@ router.delete('/equipment-makes/:id',
 
 // Equipment Models Routes
 router.get('/equipment-models',
+  verifyToken,
+  requireAuth,
   validateEquipmentModelsQuery,
   asyncHandler(async (req, res) => {
     console.log('DEBUG: Equipment models route - req.query:', req.query);
@@ -227,6 +257,8 @@ router.get('/equipment-models',
 );
 
 router.get('/equipment-models/by-make/:makeId',
+  verifyToken,
+  requireAuth,
   validateMakeId,
   asyncHandler(async (req, res) => {
     const models = await EquipmentModelService.findByMake(req.params.makeId);
@@ -238,6 +270,8 @@ router.get('/equipment-models/by-make/:makeId',
 );
 
 router.get('/equipment-models/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const model = await EquipmentModelService.findById(req.params.id);
@@ -249,14 +283,15 @@ router.get('/equipment-models/:id',
 );
 
 router.post('/equipment-models',
-  optionalAuth,
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     // Prepare user context
     const userContext = {
-      userId: req.user?.id || null,
-      farmId: req.user?.farm_roles?.[0]?.farm?.id || null
+      userId: req.user.id,
+      farmId: req.user.farm_roles?.[0]?.farm?.id || null
     };
-    
+
     const model = await EquipmentModelService.create(req.body, userContext);
     res.status(201).json({
       success: true,
@@ -267,6 +302,8 @@ router.post('/equipment-models',
 );
 
 router.put('/equipment-models/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const model = await EquipmentModelService.update(req.params.id, req.body);
@@ -279,6 +316,8 @@ router.put('/equipment-models/:id',
 );
 
 router.delete('/equipment-models/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const model = await EquipmentModelService.delete(req.params.id);
@@ -292,6 +331,8 @@ router.delete('/equipment-models/:id',
 
 // Equipment Trims Routes
 router.get('/equipment-trims',
+  verifyToken,
+  requireAuth,
   validateEquipmentTrimsQuery,
   asyncHandler(async (req, res) => {
     const result = await EquipmentTrimService.findAll(req.query);
@@ -304,6 +345,8 @@ router.get('/equipment-trims',
 );
 
 router.get('/equipment-trims/dropdown',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const { make, model } = req.query;
     const trims = await EquipmentTrimService.findForDropdown(make, model);
@@ -315,6 +358,8 @@ router.get('/equipment-trims/dropdown',
 );
 
 router.get('/equipment-trims/by-make-model/:makeId/:modelId',
+  verifyToken,
+  requireAuth,
   validateMakeAndModelIds,
   asyncHandler(async (req, res) => {
     const trims = await EquipmentTrimService.findByMakeAndModel(req.params.makeId, req.params.modelId);
@@ -326,6 +371,8 @@ router.get('/equipment-trims/by-make-model/:makeId/:modelId',
 );
 
 router.get('/equipment-trims/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const trim = await EquipmentTrimService.findById(req.params.id);
@@ -337,14 +384,15 @@ router.get('/equipment-trims/:id',
 );
 
 router.post('/equipment-trims',
-  optionalAuth,
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     // Prepare user context
     const userContext = {
-      userId: req.user?.id || null,
-      farmId: req.user?.farm_roles?.[0]?.farm?.id || null
+      userId: req.user.id,
+      farmId: req.user.farm_roles?.[0]?.farm?.id || null
     };
-    
+
     const trim = await EquipmentTrimService.create(req.body, userContext);
     res.status(201).json({
       success: true,
@@ -355,6 +403,8 @@ router.post('/equipment-trims',
 );
 
 router.put('/equipment-trims/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const trim = await EquipmentTrimService.update(req.params.id, req.body);
@@ -367,6 +417,8 @@ router.put('/equipment-trims/:id',
 );
 
 router.delete('/equipment-trims/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const trim = await EquipmentTrimService.delete(req.params.id);
@@ -380,6 +432,8 @@ router.delete('/equipment-trims/:id',
 
 // Equipment Catalog Routes (_equipment table)
 router.get('/equipment-catalog',
+  verifyToken,
+  requireAuth,
   validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const result = await EquipmentCatalogService.findAll(req.query);
@@ -392,6 +446,8 @@ router.get('/equipment-catalog',
 );
 
 router.get('/equipment-catalog/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const equipment = await EquipmentCatalogService.findById(req.params.id);
@@ -403,6 +459,8 @@ router.get('/equipment-catalog/:id',
 );
 
 router.get('/equipment-models/:makeId/:modelId/trims',
+  verifyToken,
+  requireAuth,
   validateMakeAndModelIds,
   asyncHandler(async (req, res) => {
     const trims = await EquipmentCatalogService.findTrimsForModel(req.params.makeId, req.params.modelId);
@@ -414,6 +472,8 @@ router.get('/equipment-models/:makeId/:modelId/trims',
 );
 
 router.post('/equipment-catalog',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const equipment = await EquipmentCatalogService.create(req.body);
     res.status(201).json({
@@ -425,6 +485,8 @@ router.post('/equipment-catalog',
 );
 
 router.put('/equipment-catalog/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const equipment = await EquipmentCatalogService.update(req.params.id, req.body);
@@ -437,6 +499,8 @@ router.put('/equipment-catalog/:id',
 );
 
 router.delete('/equipment-catalog/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     await EquipmentCatalogService.delete(req.params.id);
@@ -449,6 +513,8 @@ router.delete('/equipment-catalog/:id',
 
 // Part Types Routes
 router.get('/part-types',
+  verifyToken,
+  requireAuth,
   validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const result = await PartTypeService.findAll(req.query);
@@ -461,6 +527,8 @@ router.get('/part-types',
 );
 
 router.get('/part-types/dropdown',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const partTypes = await PartTypeService.findForDropdown();
     res.json({
@@ -471,6 +539,8 @@ router.get('/part-types/dropdown',
 );
 
 router.get('/part-types/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const partType = await PartTypeService.findById(req.params.id);
@@ -482,14 +552,15 @@ router.get('/part-types/:id',
 );
 
 router.post('/part-types',
-  optionalAuth,
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     // Prepare user context
     const userContext = {
-      userId: req.user?.id || null,
-      farmId: req.user?.farm_roles?.[0]?.farm?.id || null
+      userId: req.user.id,
+      farmId: req.user.farm_roles?.[0]?.farm?.id || null
     };
-    
+
     const partType = await PartTypeService.create(req.body, userContext);
     res.status(201).json({
       success: true,
@@ -500,6 +571,8 @@ router.post('/part-types',
 );
 
 router.put('/part-types/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const partType = await PartTypeService.update(req.params.id, req.body);
@@ -512,6 +585,8 @@ router.put('/part-types/:id',
 );
 
 router.delete('/part-types/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     await PartTypeService.delete(req.params.id);
@@ -524,6 +599,8 @@ router.delete('/part-types/:id',
 
 // Consumable Types Routes
 router.get('/consumable-types',
+  verifyToken,
+  requireAuth,
   validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const result = await ConsumableTypeService.findAll(req.query);
@@ -536,6 +613,8 @@ router.get('/consumable-types',
 );
 
 router.get('/consumable-types/dropdown',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const consumableTypes = await ConsumableTypeService.findForDropdown();
     res.json({
@@ -546,6 +625,8 @@ router.get('/consumable-types/dropdown',
 );
 
 router.get('/consumable-types/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const consumableType = await ConsumableTypeService.findById(req.params.id);
@@ -557,14 +638,15 @@ router.get('/consumable-types/:id',
 );
 
 router.post('/consumable-types',
-  optionalAuth,
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     // Prepare user context
     const userContext = {
-      userId: req.user?.id || null,
-      farmId: req.user?.farm_roles?.[0]?.farm?.id || null
+      userId: req.user.id,
+      farmId: req.user.farm_roles?.[0]?.farm?.id || null
     };
-    
+
     const consumableType = await ConsumableTypeService.create(req.body, userContext);
     res.status(201).json({
       success: true,
@@ -575,6 +657,8 @@ router.post('/consumable-types',
 );
 
 router.put('/consumable-types/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const consumableType = await ConsumableTypeService.update(req.params.id, req.body);
@@ -587,6 +671,8 @@ router.put('/consumable-types/:id',
 );
 
 router.delete('/consumable-types/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     await ConsumableTypeService.delete(req.params.id);

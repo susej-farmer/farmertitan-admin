@@ -395,6 +395,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { farmsApi } from '@/services/farmsApi'
 import { useNotifications } from '@/composables/useNotifications'
+import { useBulkImport } from '@/composables/useBulkImport'
 
 const props = defineProps({
   farm: {
@@ -407,14 +408,27 @@ const emit = defineEmits(['import-complete', 'view-equipment'])
 
 const { error: showError } = useNotifications()
 
+// Use bulk import composable with configuration
+const {
+  previewData,
+  previewHeaders,
+  totalRows,
+  validationError: csvValidationError,
+  validationWarnings,
+  config,
+  parseAndPreview,
+  generateCSV,
+  downloadCSV,
+  reset: resetCsvParser
+} = useBulkImport({
+  importType: 'FARM_EQUIPMENT'
+})
+
 // State
 const fileInput = ref(null)
 const selectedFile = ref(null)
 const isDragging = ref(false)
-const validationError = ref('')
-const previewData = ref([])
-const previewHeaders = ref([])
-const totalRows = ref(0)
+const validationError = ref('') // Keep for file-level validation
 const processing = ref(false)
 const importResult = ref(null)
 const resultCard = ref(null)
@@ -448,119 +462,34 @@ const handleDrop = (event) => {
 const processFile = async (file) => {
   // Reset state
   validationError.value = ''
-  previewData.value = []
   importResult.value = null
 
-  // Validate file
+  // Validate file extension and size (keep these for immediate feedback)
   if (!file.name.endsWith('.csv')) {
     validationError.value = 'Please select a CSV file (.csv extension)'
     return
   }
 
-  const maxSize = 5 * 1024 * 1024 // 5MB
+  const maxSize = config.maxFileSize
   if (file.size > maxSize) {
-    validationError.value = 'File size must be less than 5MB'
+    const maxMB = (maxSize / (1024 * 1024)).toFixed(0)
+    validationError.value = `File size must be less than ${maxMB}MB`
     return
   }
 
   selectedFile.value = file
 
-  // Parse and preview
+  // Parse and preview using composable
   try {
     await parseAndPreview(file)
+    // Clear local validation error if CSV parsed successfully
+    validationError.value = ''
   } catch (error) {
     console.error('Failed to parse CSV:', error)
-    validationError.value = 'Failed to parse CSV file. Please check the format.'
+    // Use the error from composable (csvValidationError)
+    validationError.value = csvValidationError.value || 'Failed to parse CSV file. Please check the format.'
+    showError('Invalid CSV', validationError.value)
   }
-}
-
-const parseAndPreview = async (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-
-    reader.onload = (e) => {
-      try {
-        const text = e.target.result
-        // Split by newline and filter empty lines (only whitespace)
-        const allLines = text.split('\n')
-        const lines = allLines.filter(line => line.trim().length > 0)
-
-        if (lines.length < 2) {
-          validationError.value = 'CSV file must have at least a header row and one data row'
-          reject(new Error('Empty CSV'))
-          return
-        }
-
-        // Parse header
-        const headers = lines[0].split(',').map(h => h.trim())
-        previewHeaders.value = headers
-
-        // Validate required columns
-        const requiredColumns = ['equipment_name', 'equipment_type_id', 'make_id', 'serial_number']
-        const missingColumns = requiredColumns.filter(col => !headers.includes(col))
-
-        if (missingColumns.length > 0) {
-          validationError.value = `Missing required columns: ${missingColumns.join(', ')}`
-          reject(new Error('Missing columns'))
-          return
-        }
-
-        // Parse data rows (everything after header)
-        const dataLines = lines.slice(1)
-        totalRows.value = dataLines.length
-
-        // Validate maximum rows (500 data rows max, excluding header)
-        if (dataLines.length > 500) {
-          validationError.value = `File contains ${dataLines.length} data rows. Maximum allowed is 500 rows (excluding header)`
-          reject(new Error('Too many rows'))
-          return
-        }
-
-        const preview = dataLines.slice(0, 5).map(line => {
-          const values = parseCSVLine(line)
-          const row = {}
-          headers.forEach((header, index) => {
-            row[header] = values[index] || ''
-          })
-          return row
-        })
-
-        previewData.value = preview
-        resolve()
-      } catch (error) {
-        reject(error)
-      }
-    }
-
-    reader.onerror = () => {
-      reject(new Error('Failed to read file'))
-    }
-
-    reader.readAsText(file)
-  })
-}
-
-// Simple CSV line parser (handles basic cases)
-const parseCSVLine = (line) => {
-  const values = []
-  let current = ''
-  let inQuotes = false
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i]
-
-    if (char === '"') {
-      inQuotes = !inQuotes
-    } else if (char === ',' && !inQuotes) {
-      values.push(current.trim())
-      current = ''
-    } else {
-      current += char
-    }
-  }
-
-  values.push(current.trim())
-  return values
 }
 
 const processImport = async () => {
@@ -622,11 +551,9 @@ const processImport = async () => {
 
 const clearFile = () => {
   selectedFile.value = null
-  previewData.value = []
-  previewHeaders.value = []
-  totalRows.value = 0
   validationError.value = ''
   importResult.value = null
+  resetCsvParser() // Reset composable state
   if (fileInput.value) {
     fileInput.value.value = ''
   }

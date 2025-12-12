@@ -75,7 +75,7 @@ router.get('/',
   requireAuth,
   validatePaginatedQuery,
   asyncHandler(async (req, res) => {
-    const result = await FarmService.findAll(req.query);
+    const result = await FarmService.findAll(req.query, req);
     res.json({
       success: true,
       data: result.data,
@@ -142,7 +142,7 @@ router.get('/:id',
   requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
-    const farm = await FarmService.findById(req.params.id);
+    const farm = await FarmService.findById(req.params.id, req);
     res.json({
       success: true,
       data: farm
@@ -205,7 +205,7 @@ router.post('/',
   requireAuth,
   validateFarm,
   asyncHandler(async (req, res) => {
-    const farm = await FarmService.create(req.body);
+    const farm = await FarmService.create(req.body, req);
     res.status(201).json({
       success: true,
       data: farm,
@@ -221,7 +221,7 @@ router.put('/:id',
   validateId,
   validateFarmUpdate,
   asyncHandler(async (req, res) => {
-    const farm = await FarmService.update(req.params.id, req.body);
+    const farm = await FarmService.update(req.params.id, req.body, req);
     res.json({
       success: true,
       data: farm,
@@ -236,7 +236,7 @@ router.delete('/:id',
   requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
-    await FarmService.delete(req.params.id);
+    await FarmService.delete(req.params.id, req);
     res.json({
       success: true,
       message: 'Farm deleted successfully'
@@ -250,7 +250,7 @@ router.patch('/:id/activate',
   requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
-    const farm = await FarmService.activate(req.params.id);
+    const farm = await FarmService.activate(req.params.id, req);
     res.json({
       success: true,
       data: farm,
@@ -265,7 +265,7 @@ router.patch('/:id/deactivate',
   requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
-    const farm = await FarmService.deactivate(req.params.id);
+    const farm = await FarmService.deactivate(req.params.id, req);
     res.json({
       success: true,
       data: farm,
@@ -279,7 +279,7 @@ router.get('/stats/overview',
   verifyToken,
   requireAuth,
   asyncHandler(async (req, res) => {
-    const stats = await FarmService.getStatistics();
+    const stats = await FarmService.getStatistics(req);
     res.json({
       success: true,
       data: stats

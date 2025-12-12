@@ -362,10 +362,36 @@ class EquipmentImportService {
 
       // Convertir equipment_year a integer (o undefined si vacío/null/espacios)
       const equipmentYear = registro.equipment_year?.trim();
-      validatedData.equipment_year = equipmentYear ? this.parseInteger(equipmentYear) : undefined;
+      if (equipmentYear) {
+        const yearValue = this.parseInteger(equipmentYear);
+        const currentYear = new Date().getFullYear();
 
-      // Convertir year_purchased a integer
-      validatedData.year_purchased = this.parseInteger(registro.year_purchased);
+        if (yearValue && (yearValue < 1900 || yearValue > currentYear)) {
+          return {
+            isValid: false,
+            reason: `equipment_year must be between 1900 and ${currentYear} (provided: ${yearValue})`,
+            data: null
+          };
+        }
+        validatedData.equipment_year = yearValue;
+      } else {
+        validatedData.equipment_year = undefined;
+      }
+
+      // Convertir year_purchased a integer y validar rango
+      const yearPurchasedValue = this.parseInteger(registro.year_purchased);
+      if (yearPurchasedValue) {
+        const currentYear = new Date().getFullYear();
+
+        if (yearPurchasedValue < 1900 || yearPurchasedValue > currentYear) {
+          return {
+            isValid: false,
+            reason: `year_purchased must be between 1900 and ${currentYear} (provided: ${yearPurchasedValue})`,
+            data: null
+          };
+        }
+      }
+      validatedData.year_purchased = yearPurchasedValue;
 
       // Convertir lease_owned a boolean
       validatedData.lease_owned = this.parseBoolean(registro.lease_owned);

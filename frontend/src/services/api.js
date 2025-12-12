@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { authUtils } from '@/utils/auth'
+import { ENVIRONMENT_STORAGE_KEY } from '@/config/environments'
 
 // Create axios instance with default config
 const api = axios.create({
@@ -15,22 +16,27 @@ api.interceptors.request.use(
   (config) => {
     // Add request timestamp for performance monitoring
     config.metadata = { startTime: new Date() }
-    
+
     // Add auth token using utility function
     const authHeader = authUtils.getAuthHeader()
     if (authHeader) {
       config.headers.Authorization = authHeader
     }
-    
+
+    // Add environment header (CRITICAL: Backend uses this to determine which DB to connect to)
+    const environment = localStorage.getItem(ENVIRONMENT_STORAGE_KEY) || 'local'
+    config.headers['X-Environment'] = environment
+
     // Log request in development
     if (import.meta.env.DEV) {
       console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, {
         params: config.params,
         data: config.data,
-        hasAuth: !!authHeader
+        hasAuth: !!authHeader,
+        environment: environment
       })
     }
-    
+
     return config
   },
   (error) => {

@@ -8,6 +8,8 @@ const {
   AppError
 } = require('../middleware/errorHandler');
 
+const { verifyToken, requireAuth } = require('../middleware/auth');
+
 const {
   validateMaintenanceTemplate,
   validateId,
@@ -16,6 +18,8 @@ const {
 
 // Get all maintenance templates
 router.get('/templates',
+  verifyToken,
+  requireAuth,
   validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const result = await MaintenanceTemplateService.getTemplates(req.query);
@@ -30,6 +34,8 @@ router.get('/templates',
 
 // Get specific maintenance template
 router.get('/templates/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const template = await MaintenanceTemplateService.getTemplateById(req.params.id);
@@ -42,6 +48,8 @@ router.get('/templates/:id',
 
 // Create new maintenance template
 router.post('/templates',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res, next) => {
     const { 
       interval, 
@@ -86,6 +94,8 @@ router.post('/templates',
 
 // Delete maintenance template
 router.delete('/templates/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     await MaintenanceTemplateService.deleteTemplate(req.params.id);
@@ -98,6 +108,8 @@ router.delete('/templates/:id',
 
 // Apply templates to specific equipment
 router.post('/templates/apply/:equipmentId',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const result = await MaintenanceTemplateService.applyTemplatesToEquipment(req.params.equipmentId);

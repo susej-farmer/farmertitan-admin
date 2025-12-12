@@ -1,15 +1,21 @@
 import { ref } from 'vue'
+import { getBulkImportConfig, validateCSVHeaders, formatValidationError } from '@/config/bulkImportConfig'
 
 export function useBulkImport(options = {}) {
   const {
+    importType = null, // New: import type key (e.g., 'FARM_EQUIPMENT', 'MAINTENANCE_TEMPLATES')
     maxRows = 500,
-    requiredColumns = []
+    requiredColumns = [] // Fallback if importType not provided
   } = options
 
   const previewData = ref([])
   const previewHeaders = ref([])
   const totalRows = ref(0)
   const validationError = ref('')
+  const validationWarnings = ref([])
+
+  // Get configuration if importType is provided
+  const config = importType ? getBulkImportConfig(importType) : null
 
   /**
    * Parse CSV line handling quotes and commas
@@ -60,8 +66,21 @@ export function useBulkImport(options = {}) {
           const headers = lines[0].split(',').map(h => h.trim())
           previewHeaders.value = headers
 
-          // Validate required columns
-          if (requiredColumns.length > 0) {
+          // Validate headers using config or fallback to requiredColumns
+          if (config) {
+            // Use configuration-based validation
+            const validation = validateCSVHeaders(headers, importType)
+
+            if (!validation.valid) {
+              validationError.value = formatValidationError(validation)
+              reject(new Error('Invalid headers'))
+              return
+            }
+
+            // Store warnings for display
+            validationWarnings.value = validation.warnings || []
+          } else if (requiredColumns.length > 0) {
+            // Fallback to old validation method
             const missingColumns = requiredColumns.filter(col => !headers.includes(col))
 
             if (missingColumns.length > 0) {
@@ -75,9 +94,10 @@ export function useBulkImport(options = {}) {
           const dataLines = lines.slice(1)
           totalRows.value = dataLines.length
 
-          // Validate maximum rows (excluding header)
-          if (dataLines.length > maxRows) {
-            validationError.value = `File contains ${dataLines.length} data rows. Maximum allowed is ${maxRows} rows (excluding header)`
+          // Validate maximum rows using config or fallback to maxRows
+          const maxRowsLimit = config ? config.maxRows : maxRows
+          if (dataLines.length > maxRowsLimit) {
+            validationError.value = `File contains ${dataLines.length} data rows. Maximum allowed is ${maxRowsLimit} rows (excluding header)`
             reject(new Error('Too many rows'))
             return
           }
@@ -150,6 +170,7 @@ export function useBulkImport(options = {}) {
     previewHeaders.value = []
     totalRows.value = 0
     validationError.value = ''
+    validationWarnings.value = []
   }
 
   return {
@@ -157,6 +178,8 @@ export function useBulkImport(options = {}) {
     previewHeaders,
     totalRows,
     validationError,
+    validationWarnings,
+    config, // Expose config for component use
     parseAndPreview,
     generateCSV,
     downloadCSV,

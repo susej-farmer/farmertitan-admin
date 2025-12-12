@@ -1,17 +1,20 @@
 const { createClient } = require('@supabase/supabase-js');
+const EnvironmentManager = require('../config/environmentManager');
 
 class DatabaseConnection {
   constructor() {
-    this.supabase = null;
+    this.defaultClient = null;
     this.isConnected = false;
   }
 
   async initialize() {
     try {
-      // Initialize Supabase client
-      this.supabase = createClient(
-        process.env.SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_KEY,
+      // Initialize default Supabase client (local environment)
+      const defaultConfig = EnvironmentManager.getEnvironmentConfig('local');
+
+      this.defaultClient = createClient(
+        defaultConfig.supabase.url,
+        defaultConfig.supabase.serviceKey,
         {
           auth: {
             autoRefreshToken: false,
@@ -21,7 +24,7 @@ class DatabaseConnection {
       );
 
       // Test the connection
-      const { data, error } = await this.supabase
+      const { data, error } = await this.defaultClient
         .from('_equipment_type')
         .select('count', { count: 'exact', head: true });
 
@@ -30,20 +33,14 @@ class DatabaseConnection {
       }
 
       this.isConnected = true;
-      console.log('Supabase connection initialized successfully', {
-        url: process.env.SUPABASE_URL,
-        connected: true
-      });
+      console.log('Supabase connection initialized successfully (default: local)');
 
-      return this.supabase;
+      return this.defaultClient;
     } catch (error) {
       this.isConnected = false;
       console.error('Failed to initialize Supabase connection', {
         error: error.message,
-        stack: error.stack,
-        config: {
-          url: process.env.SUPABASE_URL
-        }
+        stack: error.stack
       });
       throw error;
     }
@@ -72,16 +69,32 @@ class DatabaseConnection {
     }
   }
 
+  /**
+   * Get Supabase client for current request context
+   * Uses EnvironmentManager to determine the correct environment
+   * @returns {Object} Supabase client instance for current environment
+   */
   getClient() {
-    if (!this.supabase) {
-      throw new Error('Database not initialized. Call initialize() first.');
-    }
-    return this.supabase;
+    // Get current environment configuration from AsyncLocalStorage context
+    const config = EnvironmentManager.getCurrentConfig();
+
+    // Create client for current environment
+    return createClient(
+      config.supabase.url,
+      config.supabase.serviceKey,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
   }
 
   async healthCheck() {
     try {
-      const { data, error } = await this.supabase
+      const client = this.defaultClient || this.getClient();
+      const { data, error } = await client
         .from('_equipment_type')
         .select('count', { count: 'exact', head: true });
 
@@ -92,7 +105,8 @@ class DatabaseConnection {
       return {
         healthy: true,
         timestamp: new Date().toISOString(),
-        connected: this.isConnected
+        connected: this.isConnected,
+        environment: EnvironmentManager.getCurrentEnvironment()
       };
     } catch (error) {
       console.error('Database health check failed', { error: error.message });
@@ -105,7 +119,7 @@ class DatabaseConnection {
   }
 
   async close() {
-    if (this.supabase) {
+    if (this.defaultClient) {
       this.isConnected = false;
       console.log('Supabase connection closed');
     }
@@ -114,7 +128,8 @@ class DatabaseConnection {
   getStats() {
     return {
       connected: this.isConnected,
-      client: this.supabase ? 'supabase' : null
+      client: this.defaultClient ? 'supabase' : null,
+      environment: EnvironmentManager.getCurrentEnvironment()
     };
   }
 }

@@ -6,11 +6,15 @@ const swaggerUi = require('swagger-ui-express');
 require('dotenv').config();
 
 const { errorHandler } = require('./middleware/errorHandler');
+const { setEnvironment } = require('./middleware/environment');
 const logger = require('./database/logger');
 const swaggerSpec = require('./config/swagger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Environment selection middleware (MUST be before any routes)
+app.use(setEnvironment);
 
 // Security middleware
 app.use(helmet());

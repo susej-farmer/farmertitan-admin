@@ -18,36 +18,41 @@
     </div>
     
     <!-- Authenticated layout -->
-    <div v-else class="flex h-full">
-      <!-- Sidebar -->
-      <aside :class="['sidebar', { 'sidebar-collapsed': isSidebarCollapsed }]">
-        <AppSidebar :is-collapsed="isSidebarCollapsed" />
-      </aside>
-      
-      <!-- Main content -->
-      <main class="flex-1 flex flex-col overflow-hidden">
-        <!-- Header -->
-        <header class="bg-white border-b border-gray-200 px-6 py-4">
-          <AppHeader @toggle-sidebar="toggleSidebar" />
-        </header>
-        
-        <!-- Content area -->
-        <div class="flex-1 overflow-auto">
-          <!-- Breadcrumbs -->
-          <nav class="px-6 py-4 border-b border-gray-200 bg-white">
-            <AppBreadcrumbs />
-          </nav>
-          
-          <!-- Page content -->
-          <div class="p-6">
-            <router-view v-slot="{ Component }">
-              <transition name="fade" mode="out-in">
-                <component :is="Component" />
-              </transition>
-            </router-view>
+    <div v-else class="flex h-full flex-col">
+      <!-- Environment Banner (sticky at top) -->
+      <EnvironmentBanner :show-switcher="false" />
+
+      <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar -->
+        <aside :class="['sidebar', { 'sidebar-collapsed': isSidebarCollapsed }]">
+          <AppSidebar :is-collapsed="isSidebarCollapsed" />
+        </aside>
+
+        <!-- Main content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+          <!-- Header -->
+          <header class="bg-white border-b border-gray-200 px-6 py-4">
+            <AppHeader @toggle-sidebar="toggleSidebar" />
+          </header>
+
+          <!-- Content area -->
+          <div class="flex-1 overflow-auto">
+            <!-- Breadcrumbs -->
+            <nav class="px-6 py-4 border-b border-gray-200 bg-white">
+              <AppBreadcrumbs />
+            </nav>
+
+            <!-- Page content -->
+            <div class="p-6">
+              <router-view v-slot="{ Component }">
+                <transition name="fade" mode="out-in">
+                  <component :is="Component" />
+                </transition>
+              </router-view>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
     
     <!-- Global notifications -->
@@ -67,6 +72,7 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import AppBreadcrumbs from '@/components/layout/AppBreadcrumbs.vue'
 import AppNotifications from '@/components/layout/AppNotifications.vue'
 import AppModals from '@/components/layout/AppModals.vue'
+import EnvironmentBanner from '@/components/shared/EnvironmentBanner.vue'
 
 export default {
   name: 'App',
@@ -75,7 +81,8 @@ export default {
     AppHeader,
     AppBreadcrumbs,
     AppNotifications,
-    AppModals
+    AppModals,
+    EnvironmentBanner
   },
   setup() {
     const isLoading = ref(true)

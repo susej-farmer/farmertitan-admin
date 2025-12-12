@@ -3,6 +3,7 @@ const { AppError } = require('../middleware/errorHandler');
 
 class EquipmentClient {
   static async create(equipmentData) {
+    console.log('🔵 [EQUIPMENT_CLIENT] equipmentData received:', JSON.stringify(equipmentData, null, 2));
     try {
       const {
         name,

@@ -7,7 +7,7 @@ class DefaultTaskImportService {
   /**
    * Import default tasks from CSV file
    * @param {string} csvFilePath - Path to CSV file
-   * @returns {Promise<Object>} Import results with success and failed records
+   * @returns {Promise<Object>} Import results with successful and failed records
    */
   static async importDefaultTasksFromCSV(csvFilePath) {
     try {
@@ -24,18 +24,17 @@ class DefaultTaskImportService {
 
       // Process each row
       const results = {
-        total: rows.length,
         successful: [],
         failed: []
       };
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
-        const rowNumber = i + 2; // +2 because row 1 is header and array is 0-indexed
+        const lineNumber = i + 2; // +2 because row 1 is header and array is 0-indexed
 
         try {
           // Validate and normalize row data
-          const taskData = this.validateAndNormalizeRow(row, rowNumber);
+          const taskData = this.validateAndNormalizeRow(row, lineNumber);
 
           // Call the database function to create the task
           const result = await DefaultTaskClient.create(taskData);
@@ -43,31 +42,49 @@ class DefaultTaskImportService {
           // Check if the function returned success
           if (result.success) {
             results.successful.push({
-              row: rowNumber,
+              line: lineNumber,
               task_name: taskData.task_name,
-              data: result.data
+              task_description: taskData.task_description,
+              time_type: taskData.time_type,
+              time_interval: taskData.time_interval,
+              equipment_type_id: taskData.equipment_type_id,
+              equipment_make_id: taskData.equipment_make_id,
+              equipment_model_id: taskData.equipment_model_id,
+              equipment_trim_id: taskData.equipment_trim_id,
+              equipment_year: taskData.equipment_year,
+              part_type_id: taskData.part_type_id,
+              consumable_type_id: taskData.consumable_type_id
             });
           } else {
             // Function returned an error in the response
             results.failed.push({
-              row: rowNumber,
-              task_name: taskData.task_name || 'N/A',
+              row: lineNumber,
               error_code: result.error_code,
-              error_message: result.error_message
+              error_message: result.error_message,
+              task_name: taskData.task_name || row.task_name || 'N/A',
+              equipment_type_id: taskData.equipment_type_id || row._equipment_type || 'N/A'
             });
           }
         } catch (error) {
           // Validation or unexpected error
           results.failed.push({
-            row: rowNumber,
-            task_name: row.task_name || 'N/A',
+            row: lineNumber,
             error_code: error.code || 'VALIDATION_ERROR',
-            error_message: error.message
+            error_message: error.message,
+            task_name: row.task_name || 'N/A',
+            equipment_type_id: row._equipment_type || 'N/A'
           });
         }
       }
 
-      return results;
+      // Build summary
+      const total = results.successful.length + results.failed.length;
+
+      return {
+        total,
+        successful: results.successful,
+        failed: results.failed
+      };
     } catch (error) {
       console.error('Error importing default tasks from CSV:', error);
       throw error;
@@ -137,14 +154,39 @@ class DefaultTaskImportService {
       errors.push('time_interval is required');
     }
 
+    // task_name max length validation (45 characters)
+    if (row.task_name && row.task_name.trim().length > 45) {
+      errors.push('task_name cannot exceed 45 characters');
+    }
+
+    // task_description max length validation (200 characters)
+    if (row.task_description && row.task_description.trim().length > 200) {
+      errors.push('task_description cannot exceed 200 characters');
+    }
+
     // time_type validation
-    if (row.time_type && !['schedule:hours', 'schedule:distance'].includes(row.time_type.trim())) {
-      errors.push('time_type must be either "schedule:hours" or "schedule:distance"');
+    const validTimeTypes = ['schedule:distance', 'schedule:hours', 'schedule:cron'];
+    if (row.time_type && !validTimeTypes.includes(row.time_type.trim())) {
+      errors.push('time_type must be one of: schedule:distance, schedule:hours, schedule:cron');
     }
 
     // time_interval validation (must be numeric)
     if (row.time_interval && isNaN(row.time_interval.trim())) {
       errors.push('time_interval must be a valid numeric value');
+    }
+
+    // time_interval validation based on time_type
+    if (row.time_type && row.time_interval && !isNaN(row.time_interval.trim())) {
+      const timeType = row.time_type.trim();
+      const timeInterval = parseFloat(row.time_interval.trim());
+
+      if (timeType === 'schedule:distance' && timeInterval > 50000) {
+        errors.push('time_interval cannot exceed 50000 when time_type is schedule:distance');
+      }
+
+      if (timeType === 'schedule:hours' && timeInterval > 5000) {
+        errors.push('time_interval cannot exceed 5000 when time_type is schedule:hours');
+      }
     }
 
     // UUID validation helper
@@ -165,10 +207,26 @@ class DefaultTaskImportService {
     validateUUID(row._part_type, '_part_type');
     validateUUID(row._consumable_type, '_consumable_type');
 
-    // equipment_year validation (must be integer if provided)
+    // Check if only equipment_type is specified and equipment_year is provided
+    const hasOnlyEquipmentType =
+      row._equipment_type && row._equipment_type.trim() !== '' &&
+      (!row._equipment_make || row._equipment_make.trim() === '') &&
+      (!row._equipment_model || row._equipment_model.trim() === '') &&
+      (!row._equipment_trim || row._equipment_trim.trim() === '');
+
+    if (hasOnlyEquipmentType && row._equipment_year && row._equipment_year.trim() !== '') {
+      errors.push('equipment_year should not be specified when only equipment_type is provided (year is not used in this case)');
+    }
+
+    // equipment_year validation (must be a valid year if provided)
     if (row._equipment_year && row._equipment_year.trim() !== '') {
-      const year = parseInt(row._equipment_year.trim());
-      if (isNaN(year) || year < 1900 || year > 2100) {
+      const yearStr = row._equipment_year.trim();
+      const year = parseInt(yearStr);
+
+      // Check if it's a valid integer
+      if (isNaN(year) || !Number.isInteger(parseFloat(yearStr))) {
+        errors.push('_equipment_year must be a valid year (integer)');
+      } else if (year < 1900 || year > 2100) {
         errors.push('_equipment_year must be a valid year between 1900 and 2100');
       }
     }
@@ -176,7 +234,7 @@ class DefaultTaskImportService {
     // If there are errors, throw them
     if (errors.length > 0) {
       throw new AppError(
-        `Row ${rowNumber}: ${errors.join(', ')}`,
+        `${errors.join(', ')}`,
         400,
         'VALIDATION_ERROR'
       );

@@ -27,8 +27,8 @@
         <div class="space-y-6">
           <!-- Download Template -->
           <BulkImportTemplateDownload
-            template-path="/templates/maintenance_template.csv"
-            file-name="maintenance_template.csv"
+            :template-path="config.templatePath"
+            :file-name="config.templateFileName"
             message="Need a template?"
             button-text="Download Template"
           />
@@ -39,6 +39,23 @@
             @file-selected="handleFileSelected"
             @file-cleared="handleFileCleared"
           />
+
+          <!-- Validation Errors from Parsing -->
+          <div v-if="validationError" class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex">
+              <svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div class="flex-1">
+                <h3 class="text-sm font-medium text-red-900">Invalid CSV File</h3>
+                <div class="mt-2 text-sm text-red-700 space-y-1">
+                  <p v-for="(line, index) in validationError.split('\n')" :key="index" class="whitespace-pre-wrap">
+                    {{ line }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- Preview -->
           <BulkImportPreview
@@ -67,9 +84,10 @@
                 <thead class="table-header bg-gray-50 sticky top-0">
                   <tr>
                     <th class="table-header-cell text-left">Line</th>
-                    <th class="table-header-cell text-left">Equipment Type</th>
-                    <th class="table-header-cell text-left">Make / Model</th>
                     <th class="table-header-cell text-left">Task Name</th>
+                    <th class="table-header-cell text-left">Equipment Type ID</th>
+                    <th class="table-header-cell text-left">Make ID</th>
+                    <th class="table-header-cell text-left">Model ID</th>
                     <th class="table-header-cell text-left">Interval</th>
                   </tr>
                 </thead>
@@ -80,16 +98,25 @@
                         {{ item.line }}
                       </span>
                     </td>
-                    <td class="table-cell">
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {{ item.equipment_type || '-' }}
-                      </span>
-                    </td>
-                    <td class="table-cell text-sm text-gray-600">
-                      {{ item.equipment_make || '-' }}
-                      <span v-if="item.equipment_model" class="text-gray-400">/ {{ item.equipment_model }}</span>
-                    </td>
                     <td class="table-cell font-medium text-gray-900">{{ item.task_name }}</td>
+                    <td class="table-cell">
+                      <span v-if="item.equipment_type_id" class="font-mono text-xs text-gray-600">
+                        {{ item.equipment_type_id }}
+                      </span>
+                      <span v-else class="text-gray-400">-</span>
+                    </td>
+                    <td class="table-cell">
+                      <span v-if="item.equipment_make_id" class="font-mono text-xs text-gray-600">
+                        {{ item.equipment_make_id }}
+                      </span>
+                      <span v-else class="text-gray-400">-</span>
+                    </td>
+                    <td class="table-cell">
+                      <span v-if="item.equipment_model_id" class="font-mono text-xs text-gray-600">
+                        {{ item.equipment_model_id }}
+                      </span>
+                      <span v-else class="text-gray-400">-</span>
+                    </td>
                     <td class="table-cell">
                       <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
                         {{ item.time_interval }} {{ item.time_type }}
@@ -171,18 +198,20 @@ const emit = defineEmits(['close', 'import-complete'])
 
 const { error: showError } = useNotifications()
 
-// Composable
+// Composable with configuration
 const {
   previewData,
   previewHeaders,
   totalRows,
+  validationError,
+  validationWarnings,
+  config,
   parseAndPreview,
   generateCSV,
   downloadCSV,
   reset
 } = useBulkImport({
-  maxRows: 500,
-  requiredColumns: ['_equipment_type', 'task_name', 'task_description', 'time_type', 'time_interval']
+  importType: 'MAINTENANCE_TEMPLATES'
 })
 
 // State
@@ -200,6 +229,8 @@ const handleFileSelected = async (file) => {
     await parseAndPreview(file)
   } catch (error) {
     console.error('Failed to parse CSV:', error)
+    // validationError is already set by the composable
+    showError('Invalid CSV', validationError.value || 'Failed to parse CSV file')
   }
 }
 
@@ -221,19 +252,34 @@ const processImport = async () => {
     const response = await maintenanceApi.bulkImportTemplates(selectedFile.value)
 
     if (response.success) {
+      // Map API response: successful -> processed, failed -> skipped
+      // Transform failed items to match expected format
+      const mappedFailed = (response.data.failed || []).map(item => ({
+        line: item.row,
+        reason: item.error_message || 'Unknown error',
+        data: {
+          task_name: item.task_name,
+          _equipment_type: item.equipment_type || ''
+        }
+      }))
+
       importResult.value = {
         success: true,
-        message: response.data.message,
-        summary: response.data.summary,
-        processed: response.data.processed,
-        skipped: response.data.skipped
+        message: response.message,
+        summary: {
+          totalRecords: response.data.summary.total,
+          successfullyCreated: response.data.summary.successful,
+          skipped: response.data.summary.failed
+        },
+        processed: response.data.successful || [],
+        skipped: mappedFailed
       }
 
       console.log('✅ Import completed:', importResult.value.summary)
 
       // Emit event to parent
       emit('import-complete', {
-        ...response.data.summary
+        ...importResult.value.summary
       })
     } else {
       throw new Error(response.message || 'Import failed')
@@ -260,30 +306,36 @@ const resetImport = () => {
 const downloadSuccessReport = (items) => {
   const headers = [
     'Line',
-    'Equipment Type',
-    'Equipment Make',
-    'Equipment Model',
-    'Equipment Year',
     'Task Name',
     'Task Description',
+    'Equipment Type ID',
+    'Equipment Make ID',
+    'Equipment Model ID',
+    'Equipment Trim ID',
+    'Equipment Year',
+    'Part Type ID',
+    'Consumable Type ID',
     'Time Type',
     'Time Interval'
   ]
 
   const rows = items.map(item => [
     item.line,
-    item.equipment_type || '',
-    item.equipment_make || '',
-    item.equipment_model || '',
-    item.equipment_year || '',
     item.task_name,
     item.task_description,
+    item.equipment_type_id || '',
+    item.equipment_make_id || '',
+    item.equipment_model_id || '',
+    item.equipment_trim_id || '',
+    item.equipment_year || '',
+    item.part_type_id || '',
+    item.consumable_type_id || '',
     item.time_type,
     item.time_interval
   ])
 
   const csvContent = generateCSV(headers, rows)
-  downloadCSV(csvContent, `import-success-${Date.now()}.csv`)
+  downloadCSV(csvContent, `maintenance-import-success-${Date.now()}.csv`)
 }
 
 const downloadErrorReport = (items) => {

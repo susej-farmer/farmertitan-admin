@@ -1,5 +1,6 @@
 const AuthClient = require('../clients/authClient');
 const UserService = require('../services/userService');
+const { getSupabaseClient } = require('../clients/supabaseClient');
 const { AppError } = require('./errorHandler');
 
 /**
@@ -12,32 +13,35 @@ const verifyToken = async (req, res, next) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new AppError('Authorization token required', 401, 'UNAUTHORIZED');
     }
-    
+
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    
-    // Verify token with Supabase
-    const { user } = await AuthClient.verifyToken(token);
-    
+
+    // Verify token with Supabase using the request's environment config
+    const { user } = await AuthClient.verifyToken(token, req);
+
     if (!user) {
       throw new AppError('Invalid or expired token', 401, 'INVALID_TOKEN');
     }
-    
+
+    // Get Supabase client for this request's environment
+    const supabase = getSupabaseClient(req);
+
     // Get user profile with roles
-    const userWithRoles = await UserService.getUserWithRoles(user.id);
-    
+    const userWithRoles = await UserService.getUserWithRoles(user.id, supabase);
+
     // Attach user to request object
     req.user = {
       id: user.id,
       email: user.email,
       ...userWithRoles
     };
-    
+
     next();
   } catch (error) {
     if (error instanceof AppError) {
       return next(error);
     }
-    
+
     console.error('Token verification error:', error);
     next(new AppError('Authentication failed', 401, 'AUTH_FAILED'));
   }
@@ -152,23 +156,26 @@ const requireFarmRole = (farmId, requiredRoles = []) => {
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return next(); // No token provided, continue without user
     }
-    
+
     const token = authHeader.substring(7);
-    const { user } = await AuthClient.verifyToken(token);
-    
+    const { user } = await AuthClient.verifyToken(token, req);
+
     if (user) {
-      const userWithRoles = await UserService.getUserWithRoles(user.id);
+      // Get Supabase client for this request's environment
+      const supabase = getSupabaseClient(req);
+
+      const userWithRoles = await UserService.getUserWithRoles(user.id, supabase);
       req.user = {
         id: user.id,
         email: user.email,
         ...userWithRoles
       };
     }
-    
+
     next();
   } catch (error) {
     // Log error but don't fail the request

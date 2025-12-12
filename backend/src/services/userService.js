@@ -1,21 +1,13 @@
-const { createClient } = require('@supabase/supabase-js');
-
 class UserService {
-  constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
+  constructor(supabaseClient) {
+    if (!supabaseClient) {
+      throw new Error('UserService requires a supabase client instance');
+    }
+    this.supabase = supabaseClient;
   }
 
-  static async getUserWithRoles(userId) {
-    const service = new UserService();
+  static async getUserWithRoles(userId, supabaseClient) {
+    const service = new UserService(supabaseClient);
     
     try {
       // Get user profile with global role only
@@ -44,8 +36,8 @@ class UserService {
     }
   }
 
-  static async createUserProfile(authUserId, profileData = {}) {
-    const service = new UserService();
+  static async createUserProfile(authUserId, profileData = {}, supabaseClient) {
+    const service = new UserService(supabaseClient);
     
     try {
       const { data, error } = await service.supabase
@@ -76,8 +68,8 @@ class UserService {
     return null;
   }
 
-  static async updateUserProfile(userId, updates) {
-    const service = new UserService();
+  static async updateUserProfile(userId, updates, supabaseClient) {
+    const service = new UserService(supabaseClient);
     
     try {
       const { data, error } = await service.supabase
@@ -99,9 +91,9 @@ class UserService {
     }
   }
 
-  static async getUserByEmail(email) {
-    const service = new UserService();
-    
+  static async getUserByEmail(email, supabaseClient) {
+    const service = new UserService(supabaseClient);
+
     try {
       // First get from auth.users
       const { data: authUsers, error: authError } = await service.supabase
@@ -109,22 +101,22 @@ class UserService {
         .select('id, email')
         .eq('email', email)
         .single();
-      
+
       if (authError) {
         console.error('Error fetching auth user:', authError);
         throw authError;
       }
-      
+
       // Then get profile
-      return await this.getUserWithRoles(authUsers.id);
+      return await this.getUserWithRoles(authUsers.id, supabaseClient);
     } catch (error) {
       console.error('Error in UserService.getUserByEmail:', error);
       throw error;
     }
   }
 
-  static async assignFarmRole(userId, farmId, role) {
-    const service = new UserService();
+  static async assignFarmRole(userId, farmId, role, supabaseClient) {
+    const service = new UserService(supabaseClient);
     
     try {
       // Check if assignment already exists
@@ -167,8 +159,8 @@ class UserService {
     }
   }
 
-  static async removeFarmRole(userId, farmId) {
-    const service = new UserService();
+  static async removeFarmRole(userId, farmId, supabaseClient) {
+    const service = new UserService(supabaseClient);
     
     try {
       const { error } = await service.supabase

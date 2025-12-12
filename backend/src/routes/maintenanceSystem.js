@@ -9,6 +9,8 @@ const {
   AppError
 } = require('../middleware/errorHandler');
 
+const { verifyToken, requireAuth } = require('../middleware/auth');
+
 const {
   validateId,
   validatePaginatedQuery
@@ -20,6 +22,8 @@ const {
 
 // Get all equipment with maintenance templates
 router.get('/equipment-templates',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const filters = {
       equipment_type: req.query.equipment_type,
@@ -41,6 +45,8 @@ router.get('/equipment-templates',
 
 // Get maintenance tasks for specific equipment
 router.get('/equipment-tasks/:equipmentId',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const { equipmentId } = req.params;
     const result = await MaintenanceTemplateService.getMaintenanceTasksForEquipment(equipmentId);
@@ -53,6 +59,8 @@ router.get('/equipment-tasks/:equipmentId',
 
 // Get maintenance tasks for equipment type
 router.get('/equipment-type-tasks/:equipmentTypeId',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const { equipmentTypeId } = req.params;
     const result = await MaintenanceTemplateService.getMaintenanceTasksForEquipment(null, equipmentTypeId);
@@ -65,6 +73,8 @@ router.get('/equipment-type-tasks/:equipmentTypeId',
 
 // Get all equipment with maintenance status
 router.get('/equipment',
+  verifyToken,
+  requireAuth,
   validatePaginatedQuery,
   asyncHandler(async (req, res) => {
     const result = await EquipmentManagementService.getEquipmentWithMaintenanceStatus(req.query);
@@ -78,6 +88,8 @@ router.get('/equipment',
 
 // Get specific equipment by ID
 router.get('/equipment/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const equipment = await EquipmentManagementService.findById(req.params.id);
@@ -90,6 +102,8 @@ router.get('/equipment/:id',
 
 // Get maintenance templates for specific equipment
 router.get('/equipment/:id/maintenance',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const templates = await EquipmentManagementService.getMaintenanceTemplatesForEquipment(req.params.id);
@@ -102,6 +116,8 @@ router.get('/equipment/:id/maintenance',
 
 // Create physical equipment
 router.post('/equipment',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const equipment = await EquipmentManagementService.create(req.body);
     res.status(201).json({
@@ -114,6 +130,8 @@ router.post('/equipment',
 
 // Update physical equipment
 router.put('/equipment/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     const equipment = await EquipmentManagementService.update(req.params.id, req.body);
@@ -127,6 +145,8 @@ router.put('/equipment/:id',
 
 // Delete physical equipment
 router.delete('/equipment/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     await EquipmentManagementService.delete(req.params.id);
@@ -139,6 +159,8 @@ router.delete('/equipment/:id',
 
 // Get equipment statistics
 router.get('/equipment-stats',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const { farm_id } = req.query;
     const stats = await EquipmentManagementService.getStatistics(farm_id);
@@ -155,25 +177,27 @@ router.get('/equipment-stats',
 
 // Validate and update equipment in task series
 router.put('/validate-equipment-update/:taskSeriesId',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const { taskSeriesId } = req.params;
     const { equipment_type_name, equipment_make_name, equipment_model_name, equipment_trim_name, equipment_year } = req.body;
-    
+
     // Validate taskSeriesId
     if (!taskSeriesId) {
       throw new AppError('Valid task series ID is required', 400, 'INVALID_TASK_SERIES_ID');
     }
-    
+
     // Validate required fields
     if (!equipment_type_name || !equipment_make_name || !equipment_model_name) {
       throw new AppError('Equipment type, make, and model are required', 400, 'MISSING_REQUIRED_FIELDS');
     }
-    
+
     const result = await MaintenanceTemplateService.validateAndUpdateEquipment(
       taskSeriesId,
       { equipment_type_name, equipment_make_name, equipment_model_name, equipment_trim_name, equipment_year }
     );
-    
+
     res.json({
       success: true,
       data: result,
@@ -188,6 +212,8 @@ router.put('/validate-equipment-update/:taskSeriesId',
 
 // Create equipment with maintenance templates
 router.post('/equipment-with-maintenance',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const result = await EquipmentManagementService.createEquipmentWithMaintenance(req.body);
     res.status(201).json({
@@ -204,6 +230,8 @@ router.post('/equipment-with-maintenance',
 
 // Create individual maintenance template
 router.post('/maintenance-template',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res, next) => {
     const {
       interval,
@@ -250,6 +278,8 @@ router.post('/maintenance-template',
 
 // Delete maintenance template
 router.delete('/maintenance-template/:id',
+  verifyToken,
+  requireAuth,
   validateId,
   asyncHandler(async (req, res) => {
     await MaintenanceTemplateService.deleteTemplate(req.params.id);
@@ -262,6 +292,8 @@ router.delete('/maintenance-template/:id',
 
 // Get available time types for schedule selection
 router.get('/time-types',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const result = await MaintenanceTemplateService.getTimeTypes();
     res.json({
@@ -273,6 +305,8 @@ router.get('/time-types',
 
 // Update maintenance task template
 router.put('/task/:taskId/schedule/:scheduleId',
+  verifyToken,
+  requireAuth,
   asyncHandler(async (req, res) => {
     const { taskId, scheduleId } = req.params;
     const updateData = req.body;

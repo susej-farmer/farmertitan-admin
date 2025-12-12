@@ -1,21 +1,18 @@
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseClient, getSupabaseClientForEnvironment } = require('./supabaseClient');
 
 class AuthClient {
-  constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
+  constructor(req = null) {
+    // If req is provided, use its environment configuration
+    // Otherwise, use default local environment
+    if (req && req.dbConfig) {
+      this.supabase = getSupabaseClient(req);
+    } else {
+      this.supabase = getSupabaseClientForEnvironment('local');
+    }
   }
 
-  static async login(email, password) {
-    const client = new AuthClient();
+  static async login(email, password, req = null) {
+    const client = new AuthClient(req);
     
     try {
       const { data, error } = await client.supabase.auth.signInWithPassword({
@@ -38,17 +35,17 @@ class AuthClient {
     }
   }
 
-  static async verifyToken(token) {
-    const client = new AuthClient();
-    
+  static async verifyToken(token, req = null) {
+    const client = new AuthClient(req);
+
     try {
       const { data: user, error } = await client.supabase.auth.getUser(token);
-      
+
       if (error) {
         console.error('Token verification error:', error);
         throw error;
       }
-      
+
       return user;
     } catch (error) {
       console.error('Error in AuthClient.verifyToken:', error);
@@ -56,19 +53,19 @@ class AuthClient {
     }
   }
 
-  static async refreshToken(refreshToken) {
-    const client = new AuthClient();
-    
+  static async refreshToken(refreshToken, req = null) {
+    const client = new AuthClient(req);
+
     try {
       const { data, error } = await client.supabase.auth.refreshSession({
         refresh_token: refreshToken
       });
-      
+
       if (error) {
         console.error('Token refresh error:', error);
         throw error;
       }
-      
+
       return {
         session: data.session,
         user: data.user
@@ -79,17 +76,17 @@ class AuthClient {
     }
   }
 
-  static async logout(token) {
-    const client = new AuthClient();
-    
+  static async logout(token, req = null) {
+    const client = new AuthClient(req);
+
     try {
       const { error } = await client.supabase.auth.signOut();
-      
+
       if (error) {
         console.error('Logout error:', error);
         throw error;
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error in AuthClient.logout:', error);
@@ -97,8 +94,8 @@ class AuthClient {
     }
   }
 
-  static async createUser(email, password, userData = {}) {
-    const client = new AuthClient();
+  static async createUser(email, password, userData = {}, req = null) {
+    const client = new AuthClient(req);
     
     try {
       const { data, error } = await client.supabase.auth.admin.createUser({
